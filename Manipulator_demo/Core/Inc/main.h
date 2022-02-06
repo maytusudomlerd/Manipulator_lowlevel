@@ -80,6 +80,10 @@ void Error_Handler(void);
 #define pulse2_GPIO_Port GPIOF
 #define MCO_Pin GPIO_PIN_0
 #define MCO_GPIO_Port GPIOH
+#define ENC1_A_Pin GPIO_PIN_0
+#define ENC1_A_GPIO_Port GPIOA
+#define ENC1_B_Pin GPIO_PIN_1
+#define ENC1_B_GPIO_Port GPIOA
 #define pulse1_Pin GPIO_PIN_6
 #define pulse1_GPIO_Port GPIOA
 #define dir1_Pin GPIO_PIN_1
@@ -90,10 +94,6 @@ void Error_Handler(void);
 #define dir3_GPIO_Port GPIOF
 #define dir4_Pin GPIO_PIN_15
 #define dir4_GPIO_Port GPIOF
-#define Enc_A1_Pin GPIO_PIN_9
-#define Enc_A1_GPIO_Port GPIOE
-#define ENC_B1_Pin GPIO_PIN_11
-#define ENC_B1_GPIO_Port GPIOE
 #define LD3_Pin GPIO_PIN_14
 #define LD3_GPIO_Port GPIOB
 #define STLK_RX_Pin GPIO_PIN_8
@@ -108,6 +108,10 @@ void Error_Handler(void);
 #define USB_PowerSwitchOn_GPIO_Port GPIOG
 #define USB_OverCurrent_Pin GPIO_PIN_7
 #define USB_OverCurrent_GPIO_Port GPIOG
+#define chessboard_A_Pin GPIO_PIN_6
+#define chessboard_A_GPIO_Port GPIOC
+#define chessboard_B_Pin GPIO_PIN_7
+#define chessboard_B_GPIO_Port GPIOC
 #define USB_SOF_Pin GPIO_PIN_8
 #define USB_SOF_GPIO_Port GPIOA
 #define USB_VBUS_Pin GPIO_PIN_9
@@ -126,8 +130,6 @@ void Error_Handler(void);
 #define dynamixel_Tx_GPIO_Port GPIOC
 #define dynamixel_Rx_Pin GPIO_PIN_11
 #define dynamixel_Rx_GPIO_Port GPIOC
-#define Cboard_MOSI_Pin GPIO_PIN_7
-#define Cboard_MOSI_GPIO_Port GPIOD
 #define Cboard_MISO_Pin GPIO_PIN_9
 #define Cboard_MISO_GPIO_Port GPIOG
 #define Cboard_sck_Pin GPIO_PIN_11

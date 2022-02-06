@@ -20,7 +20,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "dma.h"
-#include "spi.h"
 #include "tim.h"
 #include "usart.h"
 #include "usb_otg.h"
@@ -28,6 +27,10 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+
+#include "mhainw_steppermotor.h"
+#include "mhainw_amt10.h"
+#include "mhainw_protocol.h"
 
 /* USER CODE END Includes */
 
@@ -48,6 +51,16 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
+Protocol user;
+
+Stepper_motor motors[3];
+
+Encoder encoders[3];
+Encoder chessboardenc;
+int32_t _encoderpos[3];
+int32_t _chessboardpos;
+
 
 /* USER CODE END PV */
 
@@ -93,8 +106,6 @@ int main(void)
   MX_DMA_Init();
   MX_USART3_UART_Init();
   MX_USB_OTG_FS_PCD_Init();
-  MX_SPI1_Init();
-  MX_TIM1_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_TIM13_Init();
@@ -106,7 +117,29 @@ int main(void)
   MX_TIM7_Init();
   MX_TIM2_Init();
   MX_UART7_Init();
+  MX_TIM5_Init();
+  MX_TIM8_Init();
   /* USER CODE BEGIN 2 */
+
+  mhainw_protocol_init(user, &huart7);
+
+  mhainw_stepper_init(motors[0], &htim13, TIM_CHANNEL_1 , GPIOB, GPIO_PIN_1);
+  mhainw_stepper_init(motors[1], &htim14, TIM_CHANNEL_1 , GPIOB, GPIO_PIN_2);
+  mhainw_stepper_init(motors[2], &htim16, TIM_CHANNEL_1 , GPIOF, GPIO_PIN_11);
+  mhainw_stepper_init(motors[3], &htim17, TIM_CHANNEL_1 , GPIOF, GPIO_PIN_15);
+
+  mhainw_amt10_init(encoders[0], &htim5);
+  mhainw_amt10_init(encoders[1], &htim2);
+  mhainw_amt10_init(encoders[2], &htim3);
+  mhainw_amt10_init(encoders[3], &htim4);
+  mhainw_amt10_init(chessboardenc, &htim8);
+
+
+  for(int joint = 0; joint < 4; joint++){
+	  _encoderpos[joint] += mhainw_amt10_unwrap(encoders[joint]);
+  }
+
+  _chessboardpos += mhainw_amt10_unwrap(chessboardenc);
 
   /* USER CODE END 2 */
 
