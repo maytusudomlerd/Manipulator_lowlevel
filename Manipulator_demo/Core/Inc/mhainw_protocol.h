@@ -10,7 +10,7 @@
 
 #include "usart.h"
 
-#define MHAINW_HEADER 0xFF
+#define MHAINW_HEADER                0xFF
 
 #define MHAINW_INITCHESSPOSE         0x99
 
@@ -62,7 +62,7 @@ typedef struct{
 	uint8_t len;
 	uint8_t inst;
 	uint8_t checksum;
-	uint16_t cal_checksum;
+	uint8_t cal_checksum;
 	uint8_t havedata;
 }Protocol;
 

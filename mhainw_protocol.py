@@ -9,6 +9,8 @@ def Rx():
     Rx_buf = []
     if ser.is_open:
         Rx_buf = ser.read(3)
+        for i in Rx_buf:
+            print(i)
     if Rx_buf[0] == 0xFF:
         instuction = ARx_buf[-1]
         if instuction == 0xA1:
@@ -24,8 +26,8 @@ def Rx():
             return 4
 
 def tx_sethome():
-    tx_buff = [0xFF,0x02,0x10,0x00]
-    tx_buff[-1] = checksum(tx_buff[1:2])
+    tx_buff = [0xFF,0x02,0x10]
+    tx_buff.append(checksum(tx_buff[1:]))
     print(tx_buff)
     if ser.is_open:
         ser.write(tx_buff)
@@ -158,6 +160,7 @@ def tx_move(position=[0,0,0,0], ref='home',type='c'):
 
 if __name__ == "__main__":
     tx_sethome()
+    print(Rx())
     # tx_jog(axis='j1', step=10 , type='j')
     # tx_move(ref='home',type='c',position=[100,-100,100,-100])
     # Rx()

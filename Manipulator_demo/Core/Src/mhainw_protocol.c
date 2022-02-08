@@ -17,6 +17,7 @@ void mhainw_protocol_init(Protocol *uart,UART_HandleTypeDef *handle){
 	 *
 	 * */
 	uart->handleuart = handle;
+
 	uart->havedata = 0;
 	uart->Rxtail = 0;
 
@@ -38,47 +39,58 @@ void mhainw_protocol_state(Protocol *uart){
 		switch(state){
 			//check header
 			case idle:
-				if(datain == MHAINW_HEADER){
+				if(datain == 0xFF){
 					state = header;
+					rx_flag = 10;
 				}
 				break;
 			// input length
 			case header:
 				uart->len = datain;
-				state = inst;
+				state = len;
+				rx_flag = 11;
 				break;
 			// input instruction
 			case len:
 				uart->inst = datain;
 				state = inst;
+				rx_flag = 12;
+				break;
 			// check length of package
 			case inst:
 				if(uart->len > 2){
 					uart->data[collectdata] = datain; //collect first parameter
 					collectdata++;
 					state = collect;
+					rx_flag = 13;
+					break;
 				} else{
 					uart->checksum = datain;
 					state = checksum;
+					rx_flag = 14;
 				}
-				break;
+
 			// collect data
 			case collect:
-				if(collectdata <= uart->len-2){
+				if(collectdata < uart->len-2){
 					uart->data[collectdata] = datain;
 					collectdata++;
+					break;
 				} else {
 					uart->checksum = datain;
 					state = checksum;
 				}
-				break;
 			// check checksum of package
 			case checksum:
 				uart->cal_checksum = uart->inst + uart->len;
+				rx_flag = collectdata;
 				for(int i = 0;i < collectdata ; i++){
 					uart->cal_checksum += uart->data[i];
+
 				}
-				uart->cal_checksum = ~(uart->cal_checksum & 0xFF);
+				rx_flag = uart->cal_checksum;
+
+				uart->cal_checksum = ~uart->cal_checksum & 0xFF;
 
 				// checksum successful
 				if(uart->cal_checksum == uart->checksum){
@@ -127,16 +139,14 @@ void mhainw_protocol_state(Protocol *uart){
 				}
 
 				state = idle;
-
+				collectdata = 0;
 				break;
 
 			default:
 				UARTsentERR(uart, MHAINW_HEADER_ERR);
 
-		collectdata = 0;
-		uart->havedata = 0;
-
 		}
+		uart->havedata = 0;
 	}
 }
 
@@ -148,10 +158,12 @@ void mhainw_protocol_updateRxtail(Protocol *uart){
 	 *
 	 * */
 //	if(uart->Rxtail != UARTgetRxhead(uart)){
-	uart->Rxtail = (uart->Rxtail + 1) % sizeof(uart->Rxbuffer);
 	uart->havedata = 1;
+	mhainw_protocol_state(uart);
+	uart->Rxtail = (uart->Rxtail + 1) % sizeof(uart->Rxbuffer);
 //	}
 	HAL_UART_Receive_IT(uart->handleuart, &uart->Rxbuffer[uart->Rxtail], 1);
+
 }
 
 void mhainw_protocol_sentdata(Protocol *uart,uint8_t *pData, uint16_t len){
@@ -216,8 +228,8 @@ void UARTsentERR(Protocol *uart,uint8_t errtype){
 	 * function the use to send set of package for alert the error of package
 	 *
 	 * */
-	uint8_t temp[] = { MHAINW_HEADER, 0x02 , errtype ,0x00};
-	temp[3] = ~((temp[1]+temp[2]) % 0xFF);
+	uint8_t temp[] = { MHAINW_HEADER, 0x02 , errtype};
+//	temp[3] = ~((temp[1]+temp[2]) % 0xFF);
 	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
 }
 
@@ -227,9 +239,8 @@ void UARTsentACK(Protocol *uart,uint8_t ack){
 	 * function the use to send set of package for acknowledge start or finish command
 	 *
 	 * */
-	uint8_t temp[] = { MHAINW_HEADER, 0x02 , ack ,0x00};
-		temp[3] = ~((temp[1]+temp[2]) % 0xFF);
-		mhainw_protocol_sentdata(uart,temp,sizeof(temp));
+	uint8_t temp[] = { MHAINW_HEADER, 0x02 , ack};
+	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
 }
 
 

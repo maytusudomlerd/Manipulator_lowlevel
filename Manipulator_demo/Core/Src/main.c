@@ -152,6 +152,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+//	mhainw_protocol_state(&user);
   }
   /* USER CODE END 3 */
 }
