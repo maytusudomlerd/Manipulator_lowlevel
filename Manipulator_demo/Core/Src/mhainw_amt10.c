@@ -4,6 +4,7 @@
  *  Created on: Feb 4, 2022
  *      Author: maytus
  */
+#include "mhainw_amt10.h"
 
 void mhainw_amt10_init(Encoder *enc, TIM_HandleTypeDef *timHandle){
 	enc->Timehandle = timHandle;
@@ -23,7 +24,7 @@ int32_t mhainw_amt10_unwrap(Encoder *enc){
 		dp = pos_diff;
 	}
 
-	enc->perv_pos = pulse;
+	enc->perv_pos = pos;
 
 	return dp;
 }

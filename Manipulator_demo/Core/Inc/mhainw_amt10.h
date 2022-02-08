@@ -2,11 +2,14 @@
  * mhainw_amt10.h
  *
  *  Created on: Feb 4, 2022
- *      Author: maytu
+ *      Author: maytus
  */
 
 #ifndef INC_MHAINW_AMT10_H_
 #define INC_MHAINW_AMT10_H_
+
+#include "stm32h7xx_hal.h"
+#include "stdint.h"
 
 typedef struct{
 	TIM_HandleTypeDef *Timehandle;

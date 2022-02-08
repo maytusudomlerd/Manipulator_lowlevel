@@ -23,11 +23,13 @@
 #include "stm32h7xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "mhainw_protocol.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
-
+extern uint8_t rx_flag;
+extern Protocol uart;
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
@@ -62,9 +64,10 @@ extern DMA_HandleTypeDef hdma_uart4_rx;
 extern DMA_HandleTypeDef hdma_uart4_tx;
 extern DMA_HandleTypeDef hdma_usart3_rx;
 extern DMA_HandleTypeDef hdma_usart3_tx;
+extern UART_HandleTypeDef huart7;
 extern UART_HandleTypeDef huart3;
 /* USER CODE BEGIN EV */
-
+extern Protocol user;
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -359,7 +362,32 @@ void TIM7_IRQHandler(void)
   /* USER CODE END TIM7_IRQn 1 */
 }
 
+/**
+  * @brief This function handles UART7 global interrupt.
+  */
+void UART7_IRQHandler(void)
+{
+  /* USER CODE BEGIN UART7_IRQn 0 */
+
+  /* USER CODE END UART7_IRQn 0 */
+  HAL_UART_IRQHandler(&huart7);
+  /* USER CODE BEGIN UART7_IRQn 1 */
+
+  /* USER CODE END UART7_IRQn 1 */
+}
+
 /* USER CODE BEGIN 1 */
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	if(huart == &huart3){
+		rx_flag += 1;
+		mhainw_protocol_updateRxtail(&user);
+	}
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+
+}
 
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

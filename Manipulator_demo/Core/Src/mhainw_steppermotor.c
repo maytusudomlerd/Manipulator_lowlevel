@@ -21,12 +21,12 @@ void mhainw_stepper_setspeed(Stepper_motor *motor,uint32_t freq){
 	if(motor->freq != freq){
 		if(freq > 0){
 			HAL_GPIO_WritePin(motor->dir_port, motor->dir_pin, 0);
-			mhainw_stepper_setpwm(motor->timHandle,motor->tim_ch,freq,0.5);
+			mhainw_stepper_setpwm(motor,freq,0.5);
 		} else if(freq < 0) {
 			HAL_GPIO_WritePin(motor->dir_port, motor->dir_pin, 1);
-			mhainw_stepper_setpwm(motor->timHandle, motor->tim_ch, freq,0.5);
+			mhainw_stepper_setpwm(motor, freq,0.5);
 		} else {
-			mhainw_stepper_setpwm(motor->timHandle, motor->tim_ch, 0, 0);
+			mhainw_stepper_setpwm(motor, 0, 0);
 		}
 		motor->freq = freq;
 	}

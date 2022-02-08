@@ -8,6 +8,8 @@
 #ifndef INC_MHAINW_STEPPERMOTOR_H_
 #define INC_MHAINW_STEPPERMOTOR_H_
 
+#include "stm32h7xx_hal.h"
+
 #define MAX_FREQUENCY 10000.0
 #define MIN_FREQUENCY 100.0
 

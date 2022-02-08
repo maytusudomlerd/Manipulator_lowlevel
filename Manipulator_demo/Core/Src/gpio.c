@@ -35,8 +35,8 @@
      PC14-OSC32_IN (OSC32_IN)   ------> RCC_OSC32_IN
      PC15-OSC32_OUT (OSC32_OUT)   ------> RCC_OSC32_OUT
      PH0-OSC_IN (PH0)   ------> RCC_OSC_IN
-     PG9   ------> SPI1_MISO
-     PG11   ------> SPI1_SCK
+     PA13 (JTMS/SWDIO)   ------> DEBUG_JTMS-SWDIO
+     PA14 (JTCK/SWCLK)   ------> DEBUG_JTCK-SWCLK
 */
 void MX_GPIO_Init(void)
 {
@@ -110,14 +110,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(dynamixel_control_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PGPin PGPin */
-  GPIO_InitStruct.Pin = Cboard_MISO_Pin|Cboard_sck_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
-  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
