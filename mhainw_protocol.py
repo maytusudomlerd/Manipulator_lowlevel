@@ -9,10 +9,8 @@ def Rx():
     Rx_buf = []
     if ser.is_open:
         Rx_buf = ser.read(3)
-        for i in Rx_buf:
-            print(i)
     if Rx_buf[0] == 0xFF:
-        instuction = ARx_buf[-1]
+        instuction = Rx_buf[-1]
         if instuction == 0xA1:
             return 1
         if instuction == 0xA2:

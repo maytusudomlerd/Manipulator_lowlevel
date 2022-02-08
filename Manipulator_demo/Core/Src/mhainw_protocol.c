@@ -176,18 +176,18 @@ void mhainw_protocol_sentdata(Protocol *uart,uint8_t *pData, uint16_t len){
 	uint16_t Txlen = sizeof(uart->Txbuffer);
 
 	//check length of data is more than buffer
-	uint16_t lendata = (len <= Txlen) ? len : Txlen;
+	uint16_t lendata = (len <= Txlen) ? len : Txlen;  //len=3
 
 	//copy data to Txbuffer
-	uint16_t cancpy = (lendata <= Txlen - uart->Txhead) ? lendata : Txlen - uart->Txhead;
-
-	memcpy(&(uart->Txbuffer[uart->Txhead]), &pData, cancpy);
+	uint16_t cancpy = (lendata <= Txlen - uart->Txhead) ? lendata : Txlen - uart->Txhead; //cancpy =
+	rx_flag = cancpy;
+	memcpy(&(uart->Txbuffer[uart->Txhead]), pData, cancpy);
 
 	//move head to new position
 	uart->Txhead = (uart->Txhead + lendata) % Txlen;
 
 	if(lendata != cancpy){
-		memcpy(uart->Txbuffer, &pData[cancpy], lendata - cancpy);
+		memcpy(uart->Txbuffer, pData+cancpy, lendata - cancpy);
 	}
 	UARTsendit(uart);
 }
@@ -239,8 +239,8 @@ void UARTsentACK(Protocol *uart,uint8_t ack){
 	 * function the use to send set of package for acknowledge start or finish command
 	 *
 	 * */
-	uint8_t temp[] = { MHAINW_HEADER, 0x02 , ack};
-	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
+	uint8_t temp[] = { 0xFF, 0x02 , ack};
+	mhainw_protocol_sentdata(uart,&temp,sizeof(temp));
 }
 
 
