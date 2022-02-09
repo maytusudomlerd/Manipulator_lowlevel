@@ -101,20 +101,19 @@ def tx_move(position=[0,0,0,0], ref='home',type='c'):
         tx_buff = [0xff,0x00,0x31]
     
     if(type == 'c'):
-        style = 0b11000000
+        style = 0b00000010
     elif(type == 'j'):
-        style = 0b11100000
+        style = 0b00000000
+    
+    if(ref == 'current'):
+        style |= 1
     
     for i in range(len(position)):
         if(position[i] < 0):
-            style = style | (1 << len(position) - i) #**
-    tx_buff.append(style)
-    for p in position:
-        if(p < 0):
-            p = -1*p
-        tx_buff.append(round(p / 255))
-        tx_buff.append(round(p % 255))
-    
+            position[i] = position[i] + 65535
+        tx_buff.append((position[i] >> 8) & 0xFF)
+        tx_buff.append(position[i] & 0xFF)
+         
     tx_buff[1] = len(tx_buff) - 1
     
     tx_buff.append(checksum(tx_buff[1:]))
@@ -127,10 +126,11 @@ def tx_move(position=[0,0,0,0], ref='home',type='c'):
 
 if __name__ == "__main__":
     # tx_sethome()
-    tx_jog(axis='x', step=-10 , type='c')
-    print(Rx())
+    # tx_jog(axis='x', step=-10 , type='c')
+    tx_move(ref='home',type='c',position=[100,-100,100,-100])
+    # print(Rx())
     
-    # tx_move(ref='home',type='c',position=[100,-100,100,-100])
+    
     # Rx()
 
 
