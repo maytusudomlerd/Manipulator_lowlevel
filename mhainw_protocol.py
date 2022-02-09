@@ -1,6 +1,6 @@
 import serial
 
-ser = serial.Serial('/dev/tty.usbmodem1414203', 256000, timeout=1)
+ser = serial.Serial('/dev/tty.usbmodem1424203', 256000, timeout=1)
 
 def checksum(data):
     return ~(sum(data)) & 0xff
@@ -44,71 +44,40 @@ robot jog
 
 """
 def tx_jog(axis, step, type = 'c'):
+
     if(type == 'c'): # catesian jog
         if(axis == 'x'):
-            move_axis = 0b11111000
-            if(step < 0):
-                move_step = 0b00000000 | (-1 * step)
-            else:
-                move_step = 0b00010000 | step
-
+            move_axis = 0b00001000
         elif(axis == 'y'):
-            move_axis = 0b11110100
-            if(step < 0):
-                move_step = 0b00000000 | (-1 * step)
-            else:
-                move_step = 0b00010000 | step
-
+            move_axis = 0b00000100
         elif(axis == 'z'):
-            move_axis = 0b11110010
-
-            if(step < 0):
-                move_step = 0b00000000 | (-1 * step)
-            else:
-                move_step = 0b00010000 | step
-
+            move_axis = 0b00000010
         elif(axis == 'rz'):
-            move_axis = 0b11110001
-            if(step < 0):
-                move_step = 0b00000000 | (-1 * step)
-            else:
-                move_step = 0b00010000 | step
+            move_axis = 0b00000001
 
+        if(step < 0):
+            move_step = step + 256
         else:
-            print('invalid axis')
+            move_step = step
 
         tx_buff = [0xFF,0x04,0x20,move_axis,move_step]
 
     elif(type == 'j'): # joint jog
         
         if(axis == 'j1'):
-            move_axis = 0b11111000
-            if(step < 0):
-                move_step = 0b00000000 | (-1 * step)
-            else:
-                move_step = 0b00010000 | step
-            
+            move_axis = 0b00001000
         elif(axis == 'j2'):
-            move_axis = 0b11110100
-            if(step < 0):
-                move_step = 0b00000000 | (-1 * step)
-            else:
-                move_step = 0b00010000 | step
-        
+            move_axis = 0b00000100
         elif(axis == 'j3'):
-            move_axis = 0b11110010
-            if(step < 0):
-                move_step = 0b00000000 | (-1 * step)
-            else:
-                move_step = 0b00010000 | step
-
+            move_axis = 0b00000100
         elif(axis == 'j4'):
-            move_axis = 0b11110001
-            if(step < 0):
-                move_step = 0b00000000 | (-1 * step)
-            else:
-                move_step = 0b00010000 | step
-        
+            move_axis = 0b00000100
+
+        if(step < 0):
+            move_step = step + 256
+        else:
+            move_step = step
+
         tx_buff = [0xFF,0x04,0x21,move_axis,move_step]
 
     tx_buff.append(checksum(tx_buff[1:]))
@@ -157,9 +126,10 @@ def tx_move(position=[0,0,0,0], ref='home',type='c'):
 
 
 if __name__ == "__main__":
-    tx_sethome()
+    # tx_sethome()
+    tx_jog(axis='x', step=-10 , type='c')
     print(Rx())
-    # tx_jog(axis='j1', step=10 , type='j')
+    
     # tx_move(ref='home',type='c',position=[100,-100,100,-100])
     # Rx()
 

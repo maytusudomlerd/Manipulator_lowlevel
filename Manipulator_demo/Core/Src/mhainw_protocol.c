@@ -9,6 +9,7 @@
 #include "usart.h"
 
 extern uint8_t rx_flag;
+extern uint32_t setpoint[3];
 
 void mhainw_protocol_init(Protocol *uart,UART_HandleTypeDef *handle){
 	/*
@@ -157,11 +158,9 @@ void mhainw_protocol_updateRxtail(Protocol *uart){
 	 * function is use to update the last index in Rxbuffer and its use to first index to fill data in Rxbuffer
 	 *
 	 * */
-//	if(uart->Rxtail != UARTgetRxhead(uart)){
 	uart->havedata = 1;
 	mhainw_protocol_state(uart);
 	uart->Rxtail = (uart->Rxtail + 1) % sizeof(uart->Rxbuffer);
-//	}
 	HAL_UART_Receive_IT(uart->handleuart, &uart->Rxbuffer[uart->Rxtail], 1);
 
 }
@@ -229,7 +228,6 @@ void UARTsentERR(Protocol *uart,uint8_t errtype){
 	 *
 	 * */
 	uint8_t temp[] = { MHAINW_HEADER, 0x02 , errtype};
-//	temp[3] = ~((temp[1]+temp[2]) % 0xFF);
 	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
 }
 
@@ -240,7 +238,8 @@ void UARTsentACK(Protocol *uart,uint8_t ack){
 	 *
 	 * */
 	uint8_t temp[] = { 0xFF, 0x02 , ack};
-	mhainw_protocol_sentdata(uart,&temp,sizeof(temp));
+	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
 }
+
 
 

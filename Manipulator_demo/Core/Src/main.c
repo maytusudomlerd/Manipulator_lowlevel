@@ -31,6 +31,7 @@
 #include "mhainw_steppermotor.h"
 #include "mhainw_amt10.h"
 #include "mhainw_protocol.h"
+#include "mhainw_control.h"
 
 /* USER CODE END Includes */
 
@@ -56,12 +57,19 @@ uint8_t rx_flag;
 
 Protocol user;
 
-Stepper_motor motors[3];
+Stepper_motor motors[4];
 
-Encoder encoders[3];
+Encoder encoders[4];
 Encoder chessboardenc;
-int32_t jointstate[3];
-int32_t _chessboardpos;
+int32_t jointstate[4];
+int32_t chessboardpos;
+
+uint32_t timestamp = 0;
+
+int32_t setpoint[4] = { 0 };
+float target_position[4] = { 0 };
+uint8_t joint = 0;
+Controller position_jointcontroller[4];
 
 
 /* USER CODE END PV */
@@ -125,23 +133,21 @@ int main(void)
 
   mhainw_protocol_init(&user, &huart3);
 
-//  mhainw_stepper_init(motors[0], &htim13, TIM_CHANNEL_1 , GPIOB, GPIO_PIN_1);
-//  mhainw_stepper_init(motors[1], &htim14, TIM_CHANNEL_1 , GPIOB, GPIO_PIN_2);
-//  mhainw_stepper_init(motors[2], &htim16, TIM_CHANNEL_1 , GPIOF, GPIO_PIN_11);
-//  mhainw_stepper_init(motors[3], &htim17, TIM_CHANNEL_1 , GPIOF, GPIO_PIN_15);
-//
-//  mhainw_amt10_init(encoders[0], &htim5);
-//  mhainw_amt10_init(encoders[1], &htim2);
-//  mhainw_amt10_init(encoders[2], &htim3);
-//  mhainw_amt10_init(encoders[3], &htim4);
-//  mhainw_amt10_init(chessboardenc, &htim8);
+  mhainw_stepper_init(&motors[0], &htim13, TIM_CHANNEL_1 , GPIOB, GPIO_PIN_1);
+  mhainw_stepper_init(&motors[1], &htim14, TIM_CHANNEL_1 , GPIOB, GPIO_PIN_2);
+  mhainw_stepper_init(&motors[2], &htim16, TIM_CHANNEL_1 , GPIOF, GPIO_PIN_11);
+  mhainw_stepper_init(&motors[3], &htim17, TIM_CHANNEL_1 , GPIOF, GPIO_PIN_15);
 
+  mhainw_amt10_init(&encoders[0], &htim5);
+  mhainw_amt10_init(&encoders[1], &htim2);
+  mhainw_amt10_init(&encoders[2], &htim3);
+  mhainw_amt10_init(&encoders[3], &htim4);
+  mhainw_amt10_init(&chessboardenc, &htim8);
 
-//  for(int joint = 0; joint < 4; joint++){
-//	  jointstate[joint] += mhainw_amt10_unwrap(encoders[joint]);
-//  }
-//
-//  jointstate += mhainw_amt10_unwrap(chessboardenc);
+  mhainw_control_init(&position_jointcontroller[0],0,0,0);
+  mhainw_control_init(&position_jointcontroller[1],0,0,0);
+  mhainw_control_init(&position_jointcontroller[2],0,0,0);
+  mhainw_control_init(&position_jointcontroller[3],0,0,0);
 
   /* USER CODE END 2 */
 
@@ -152,7 +158,27 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-//	mhainw_protocol_state(&user);
+
+	/*
+	 * test position control
+	setpoint[0] = 10000;
+	setpoint[1] = 10000;
+	setpoint[2] = 100;
+	setpoint[3] = 100;
+	if (HAL_GetTick() - timestamp >= 1){
+		timestamp = HAL_GetTick();
+
+		//read value from encoder
+		jointstate[joint] += mhainw_amt10_unwrap(encoders[joint]);
+		//position control
+		mhainw_control_positioncontrol(&position_jointcontroller[joint], setpoint[joint], jointstate[joint]);
+		//set frequency to stepper
+		mhainw_stepper_setspeed(&motor[joint], position_jointcontroller[joint]->output);
+
+		joint = (joint + 1 ) % 3 ;
+	}
+	*/
+
   }
   /* USER CODE END 3 */
 }

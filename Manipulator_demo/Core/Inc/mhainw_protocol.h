@@ -57,7 +57,7 @@ typedef struct{
 	UART_HandleTypeDef *handleuart;
 	uint8_t Rxbuffer[100];
 	uint8_t Txbuffer[100];
-	uint8_t data[100];
+	int8_t data[100];
 	uint8_t Txhead,Rxtail,Txtail;
 	uint8_t len;
 	uint8_t inst;
