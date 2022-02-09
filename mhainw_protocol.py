@@ -1,6 +1,6 @@
 import serial
 
-ser = serial.Serial('/dev/tty.usbmodem1424203', 256000, timeout=1)
+ser = serial.Serial('/dev/tty.usbmodem142303', 256000, timeout=1)
 
 def checksum(data):
     return ~(sum(data)) & 0xff
@@ -47,16 +47,16 @@ def tx_jog(axis, step, type = 'c'):
 
     if(type == 'c'): # catesian jog
         if(axis == 'x'):
-            move_axis = 0b00001000
+            move_axis = 0b00001000  #8
         elif(axis == 'y'):
-            move_axis = 0b00000100
+            move_axis = 0b00000100  #4
         elif(axis == 'z'):
-            move_axis = 0b00000010
+            move_axis = 0b00000010  #2
         elif(axis == 'rz'):
-            move_axis = 0b00000001
+            move_axis = 0b00000001  #1
 
         if(step < 0):
-            move_step = step + 256
+            move_step = step & 0xFF
         else:
             move_step = step
 
@@ -74,7 +74,7 @@ def tx_jog(axis, step, type = 'c'):
             move_axis = 0b00000100
 
         if(step < 0):
-            move_step = step + 256
+            move_step = step & 0xFF
         else:
             move_step = step
 
@@ -100,17 +100,16 @@ def tx_move(position=[0,0,0,0], ref='home',type='c'):
     elif(ref == 'current'):
         tx_buff = [0xff,0x00,0x31]
     
-    if(type == 'c'):
-        style = 0b00000010
-    elif(type == 'j'):
-        style = 0b00000000
+    style = 0b00000000
     
     if(ref == 'current'):
         style |= 1
+
+    tx_buff.append(style)
     
     for i in range(len(position)):
         if(position[i] < 0):
-            position[i] = position[i] + 65535
+            position[i] = position[i] & 0xFFFF
         tx_buff.append((position[i] >> 8) & 0xFF)
         tx_buff.append(position[i] & 0xFF)
          
@@ -126,8 +125,8 @@ def tx_move(position=[0,0,0,0], ref='home',type='c'):
 
 if __name__ == "__main__":
     # tx_sethome()
-    # tx_jog(axis='x', step=-10 , type='c')
-    tx_move(ref='home',type='c',position=[100,-100,100,-100])
+    tx_jog(axis='x', step=-10 , type='c')
+    # tx_move(ref='home',type='c',position=[100,-100,100,-100])
     # print(Rx())
     
     
