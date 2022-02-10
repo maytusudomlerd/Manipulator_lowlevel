@@ -53,8 +53,6 @@
 
 /* USER CODE BEGIN PV */
 
-uint8_t rx_flag;
-
 Protocol user;
 
 Stepper_motor motors[4];
@@ -158,13 +156,11 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
+	for(int i=0;i<4;i++){
+		jointstate[i] += mhainw_amt10_unwrap(&encoders[i]);
+	}
 	/*
 	 * test position control
-	setpoint[0] = 10000;
-	setpoint[1] = 10000;
-	setpoint[2] = 100;
-	setpoint[3] = 100;
 	if (HAL_GetTick() - timestamp >= 1){
 		timestamp = HAL_GetTick();
 

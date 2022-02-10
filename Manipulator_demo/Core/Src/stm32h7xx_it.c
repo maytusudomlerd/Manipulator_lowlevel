@@ -28,7 +28,6 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
-extern uint8_t rx_flag;
 extern Protocol uart;
 /* USER CODE END TD */
 
@@ -380,7 +379,6 @@ void UART7_IRQHandler(void)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	if(huart == &huart3){
-		rx_flag += 1;
 		mhainw_protocol_updateRxtail(&user);
 	}
 }

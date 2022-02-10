@@ -8,8 +8,7 @@
 #include "mhainw_protocol.h"
 #include "usart.h"
 
-extern uint8_t rx_flag;
-extern uint32_t setpoint[3];
+extern uint32_t setpoint[4];
 
 void mhainw_protocol_init(Protocol *uart,UART_HandleTypeDef *handle){
 	/*
@@ -42,20 +41,17 @@ void mhainw_protocol_state(Protocol *uart){
 			case idle:
 				if(datain == 0xFF){
 					state = header;
-					rx_flag = 10;
 				}
 				break;
 			// input length
 			case header:
 				uart->len = datain;
 				state = len;
-				rx_flag = 11;
 				break;
 			// input instruction
 			case len:
 				uart->inst = datain;
 				state = inst;
-				rx_flag = 12;
 				break;
 			// check length of package
 			case inst:
@@ -63,12 +59,10 @@ void mhainw_protocol_state(Protocol *uart){
 					uart->data[collectdata] = datain; //collect first parameter
 					collectdata++;
 					state = collect;
-					rx_flag = 13;
 					break;
 				} else{
 					uart->checksum = datain;
 					state = checksum;
-					rx_flag = 14;
 				}
 
 			// collect data
@@ -84,12 +78,9 @@ void mhainw_protocol_state(Protocol *uart){
 			// check checksum of package
 			case checksum:
 				uart->cal_checksum = uart->inst + uart->len;
-				rx_flag = collectdata;
 				for(int i = 0;i < collectdata ; i++){
 					uart->cal_checksum += uart->data[i];
-
 				}
-				rx_flag = uart->cal_checksum;
 
 				uart->cal_checksum = ~uart->cal_checksum & 0xFF;
 
@@ -103,6 +94,7 @@ void mhainw_protocol_state(Protocol *uart){
 						UARTsentACK(uart, MHAINW_JOG_ACK);
 						break;
 					case MHAINW_JOG_JOINT:
+						jogjoint(uart,setpoint);
 						UARTsentACK(uart, MHAINW_JOG_ACK);
 						break;
 					case MAHINW_MOVE_CATESIAN :
@@ -178,8 +170,8 @@ void mhainw_protocol_sentdata(Protocol *uart,uint8_t *pData, uint16_t len){
 	uint16_t lendata = (len <= Txlen) ? len : Txlen;  //len=3
 
 	//copy data to Txbuffer
-	uint16_t cancpy = (lendata <= Txlen - uart->Txhead) ? lendata : Txlen - uart->Txhead; //cancpy =
-	rx_flag = cancpy;
+	uint16_t cancpy = (lendata <= Txlen - uart->Txhead) ? lendata : Txlen - uart->Txhead;
+
 	memcpy(&(uart->Txbuffer[uart->Txhead]), pData, cancpy);
 
 	//move head to new position
@@ -239,6 +231,41 @@ void UARTsentACK(Protocol *uart,uint8_t ack){
 	 * */
 	uint8_t temp[] = { 0xFF, 0x02 , ack};
 	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
+}
+void jogcatesian(Protocol *uart,int32_t setpoint[]){
+	uint8_t axis = uart->data[0];
+	int8_t step = uart->data[1];
+	uint8_t taskjoint[4] = {0};
+
+	if(axis == 8){
+		taskjoint[0] = step;
+	} else if(axis == 4){
+		taskjoint[1] = step;
+	} else if(axis == 2){
+		taskjoint[2] = step;
+	} else if(axis == 1){
+		taskjoint[3] = step;
+	}
+
+//	jointstate = jacobian_inverse * taskjoint
+//	for(int i=0;i<4;i++){
+//		setpoint[i] = jointstate[i];
+//	}
+
+}
+void jogjoint(Protocol *uart,int32_t setpoint[]){
+	uint8_t axis = uart->data[0];
+
+	if(axis == 8){
+		setpoint[0] += uart->data[1];
+	} else if(axis == 4){
+		setpoint[1] += uart->data[1];
+	} else if(axis == 2){
+		setpoint[2] += uart->data[1];
+	} else if(axis == 1){
+		setpoint[3] += uart->data[1];
+	}
+
 }
 
 

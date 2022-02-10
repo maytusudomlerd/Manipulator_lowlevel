@@ -9,6 +9,7 @@
 void mhainw_amt10_init(Encoder *enc, TIM_HandleTypeDef *timHandle){
 	enc->Timehandle = timHandle;
 	enc->perv_pos = 0;
+	HAL_TIM_Encoder_Start(timHandle,TIM_CHANNEL_ALL);
 }
 
 int32_t mhainw_amt10_unwrap(Encoder *enc){
