@@ -27,7 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <math.h>
 #include "mhainw_steppermotor.h"
 #include "mhainw_amt10.h"
 #include "mhainw_protocol.h"
@@ -42,6 +42,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define PI 3.1415926
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -52,6 +53,10 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
+float angle = 0;
+double changerate= 0.1;
+float sineout;
 
 Protocol user;
 
@@ -131,10 +136,10 @@ int main(void)
 
   mhainw_protocol_init(&user, &huart3);
 
-  mhainw_stepper_init(&motors[0], &htim13, TIM_CHANNEL_1 , GPIOB, GPIO_PIN_1);
-  mhainw_stepper_init(&motors[1], &htim14, TIM_CHANNEL_1 , GPIOB, GPIO_PIN_2);
-  mhainw_stepper_init(&motors[2], &htim16, TIM_CHANNEL_1 , GPIOF, GPIO_PIN_11);
-  mhainw_stepper_init(&motors[3], &htim17, TIM_CHANNEL_1 , GPIOF, GPIO_PIN_15);
+  mhainw_stepper_init(&motors[0], &htim13, TIM_CHANNEL_1 , dir1_GPIO_Port, dir1_Pin);
+  mhainw_stepper_init(&motors[1], &htim14, TIM_CHANNEL_1 , dir2_GPIO_Port, dir2_Pin);
+  mhainw_stepper_init(&motors[2], &htim16, TIM_CHANNEL_1 , dir3_GPIO_Port, dir3_Pin);
+  mhainw_stepper_init(&motors[3], &htim17, TIM_CHANNEL_1 , dir4_GPIO_Port, dir4_Pin);
 
   mhainw_amt10_init(&encoders[0], &htim5);
   mhainw_amt10_init(&encoders[1], &htim2);
@@ -143,7 +148,7 @@ int main(void)
   mhainw_amt10_init(&chessboardenc, &htim8);
 
   mhainw_control_init(&position_jointcontroller[0],0,0,0);
-  mhainw_control_init(&position_jointcontroller[1],0,0,0);
+  mhainw_control_init(&position_jointcontroller[1],3,0.01,0);
   mhainw_control_init(&position_jointcontroller[2],0,0,0);
   mhainw_control_init(&position_jointcontroller[3],0,0,0);
 
@@ -151,29 +156,69 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  jointstate[1] = 0;
+  setpoint[1] = 0;
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	for(int i=0;i<4;i++){
-		jointstate[i] += mhainw_amt10_unwrap(&encoders[i]);
-	}
-	/*
-	 * test position control
-	if (HAL_GetTick() - timestamp >= 1){
+
+//	mhainw_stepper_setspeed(&motors[1], 1000);
+//	HAL_Delay(1000);
+//	mhainw_stepper_setspeed(&motors[1], -1000);
+//	HAL_Delay(1000);
+//	mhainw_stepper_setspeed(&motors[1], 0);
+//	HAL_Delay(1000);
+
+	  if (HAL_GetTick() - timestamp >= 1){
 		timestamp = HAL_GetTick();
 
-		//read value from encoder
-		jointstate[joint] += mhainw_amt10_unwrap(encoders[joint]);
-		//position control
-		mhainw_control_positioncontrol(&position_jointcontroller[joint], setpoint[joint], jointstate[joint]);
-		//set frequency to stepper
-		mhainw_stepper_setspeed(&motor[joint], position_jointcontroller[joint]->output);
+		float period,pwm;
 
-		joint = (joint + 1 ) % 3 ;
+		//encoder read value
+		jointstate[1] += mhainw_amt10_unwrap(&encoders[1]);
+		//jointstate[1] = htim2.Instance->CNT;
+		// PID output
+		mhainw_control_positioncontrol(&position_jointcontroller[1], setpoint[1], jointstate[1]);
+		//set motor
+		if(position_jointcontroller[1].output > 0){
+			HAL_GPIO_WritePin(dir2_GPIO_Port, dir2_Pin, 1);
+			if(position_jointcontroller[1].output < 50){
+				position_jointcontroller[1].output = 50;
+			}else if(position_jointcontroller[1].output > 1000){
+				position_jointcontroller[1].output = 1000;
+			}
+			__HAL_TIM_SET_AUTORELOAD(&htim14, position_jointcontroller[1].output);
+			__HAL_TIM_SET_COMPARE(&htim14,TIM_CHANNEL_1 , position_jointcontroller[1].output * 0.5);
+
+		}
+		else if(position_jointcontroller[1].output < 0){
+			HAL_GPIO_WritePin(dir2_GPIO_Port, dir2_Pin, 1);
+			position_jointcontroller[1].output = -1 * position_jointcontroller[1].output;
+
+			if(position_jointcontroller[1].output < 50){
+				position_jointcontroller[1].output = 50;
+			}else if(position_jointcontroller[1].output > 1000){
+				position_jointcontroller[1].output = 1000;
+			}
+			__HAL_TIM_SET_AUTORELOAD(&htim14, position_jointcontroller[1].output);
+			__HAL_TIM_SET_COMPARE(&htim14,TIM_CHANNEL_1 , position_jointcontroller[1].output * 0.5);
+
+		}
+		else{
+			__HAL_TIM_SET_AUTORELOAD(&htim14, 1000);
+			__HAL_TIM_SET_COMPARE(&htim14,TIM_CHANNEL_1 , 0);
+		}
+
+
+
+
+//		mhainw_stepper_setspeed(&motors[1], position_jointcontroller[1].output);
+
+
 	}
-	*/
 
   }
   /* USER CODE END 3 */

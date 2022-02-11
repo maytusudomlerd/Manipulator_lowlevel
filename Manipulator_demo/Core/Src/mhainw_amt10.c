@@ -17,10 +17,10 @@ int32_t mhainw_amt10_unwrap(Encoder *enc){
 	int32_t pos = enc->Timehandle->Instance->CNT;
 	int32_t pos_diff = pos - enc->perv_pos;
 
-	if( pos_diff > 32000){                            // overflow
-		dp = -1 * (32000 - pos_diff);
-	} else if(pos_diff < 32000){                      // underflow
-		dp = 32000 + pos_diff;
+	if( pos_diff > 32000){                            // underflow
+		dp = -1 * (65535 - pos_diff);
+	} else if(pos_diff < -32000){                      // overflow
+		dp = 65535 + pos_diff;
 	} else {
 		dp = pos_diff;
 	}

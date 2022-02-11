@@ -18,14 +18,14 @@ typedef struct{
 	uint32_t tim_ch;
 	GPIO_TypeDef *dir_port;
 	uint16_t dir_pin;
-	uint8_t freq;
+	float freq;
 }Stepper_motor;
 
 
 
 void mhainw_stepper_init(Stepper_motor *motor,TIM_HandleTypeDef *timHandle,uint32_t tim_ch,
 		GPIO_TypeDef *dir_port,uint16_t dir_pin);
-void mhainw_stepper_setspeed(Stepper_motor *motor,uint32_t freq);
+void mhainw_stepper_setspeed(Stepper_motor *motor,float freq);
 void mhainw_stepper_setpwm(Stepper_motor *motor,float freq,float duty_cycle);
 
 
