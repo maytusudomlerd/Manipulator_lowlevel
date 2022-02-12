@@ -27,7 +27,7 @@ void mhainw_control_positioncontrol(Controller *pid, float setpoint, float joint
 	pid->d_term = pid->kd * (error - pid->perv_error);
 	pid->perv_error = error;
 
-	pid->output = pid->p_term + pid->i_term + pid->d_term;
+	pid->output = pid->p_term ;
 //	return pid->output;
 }
 

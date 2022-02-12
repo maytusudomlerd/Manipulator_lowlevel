@@ -10,8 +10,11 @@
 
 #include "stm32h7xx_hal.h"
 
-#define MAX_FREQUENCY 10000.0
-#define MIN_FREQUENCY 100.0
+#define MAX_FREQUENCY 300.0
+#define MIN_FREQUENCY 15.0
+
+#define CCW 1
+#define CW 0
 
 typedef struct{
 	TIM_HandleTypeDef *timHandle;

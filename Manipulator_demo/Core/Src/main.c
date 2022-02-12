@@ -148,7 +148,7 @@ int main(void)
   mhainw_amt10_init(&chessboardenc, &htim8);
 
   mhainw_control_init(&position_jointcontroller[0],0,0,0);
-  mhainw_control_init(&position_jointcontroller[1],3,0.01,0);
+  mhainw_control_init(&position_jointcontroller[1],3,0,0);
   mhainw_control_init(&position_jointcontroller[2],0,0,0);
   mhainw_control_init(&position_jointcontroller[3],0,0,0);
 
@@ -158,13 +158,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   jointstate[1] = 0;
   setpoint[1] = 0;
-
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-
+//	jointstate[1] += mhainw_amt10_unwrap(&encoders[1]);
 //	mhainw_stepper_setspeed(&motors[1], 1000);
 //	HAL_Delay(1000);
 //	mhainw_stepper_setspeed(&motors[1], -1000);
@@ -175,49 +174,15 @@ int main(void)
 	  if (HAL_GetTick() - timestamp >= 1){
 		timestamp = HAL_GetTick();
 
-		float period,pwm;
-
 		//encoder read value
+		jointstate[0] = htim2.Instance->CNT;
 		jointstate[1] += mhainw_amt10_unwrap(&encoders[1]);
-		//jointstate[1] = htim2.Instance->CNT;
+//		jointstate[1] = htim2.Instance->CNT;
 		// PID output
 		mhainw_control_positioncontrol(&position_jointcontroller[1], setpoint[1], jointstate[1]);
-		//set motor
-		if(position_jointcontroller[1].output > 0){
-			HAL_GPIO_WritePin(dir2_GPIO_Port, dir2_Pin, 1);
-			if(position_jointcontroller[1].output < 50){
-				position_jointcontroller[1].output = 50;
-			}else if(position_jointcontroller[1].output > 1000){
-				position_jointcontroller[1].output = 1000;
-			}
-			__HAL_TIM_SET_AUTORELOAD(&htim14, position_jointcontroller[1].output);
-			__HAL_TIM_SET_COMPARE(&htim14,TIM_CHANNEL_1 , position_jointcontroller[1].output * 0.5);
-
-		}
-		else if(position_jointcontroller[1].output < 0){
-			HAL_GPIO_WritePin(dir2_GPIO_Port, dir2_Pin, 1);
-			position_jointcontroller[1].output = -1 * position_jointcontroller[1].output;
-
-			if(position_jointcontroller[1].output < 50){
-				position_jointcontroller[1].output = 50;
-			}else if(position_jointcontroller[1].output > 1000){
-				position_jointcontroller[1].output = 1000;
-			}
-			__HAL_TIM_SET_AUTORELOAD(&htim14, position_jointcontroller[1].output);
-			__HAL_TIM_SET_COMPARE(&htim14,TIM_CHANNEL_1 , position_jointcontroller[1].output * 0.5);
-
-		}
-		else{
-			__HAL_TIM_SET_AUTORELOAD(&htim14, 1000);
-			__HAL_TIM_SET_COMPARE(&htim14,TIM_CHANNEL_1 , 0);
-		}
-
-
-
-
-//		mhainw_stepper_setspeed(&motors[1], position_jointcontroller[1].output);
-
-
+		mhainw_stepper_setspeed(&motors[1], position_jointcontroller[1].output);
+//
+//
 	}
 
   }
