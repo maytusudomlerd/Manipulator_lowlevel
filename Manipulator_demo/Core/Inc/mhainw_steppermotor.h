@@ -13,8 +13,8 @@
 #define MAX_FREQUENCY 300.0
 #define MIN_FREQUENCY 15.0
 
-#define CCW 1
-#define CW 0
+#define CCW 0
+#define CW 1
 
 typedef struct{
 	TIM_HandleTypeDef *timHandle;

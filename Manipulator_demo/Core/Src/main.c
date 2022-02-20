@@ -137,8 +137,8 @@ int main(void)
   mhainw_protocol_init(&user, &huart3);
 
   mhainw_stepper_init(&motors[0], &htim13, TIM_CHANNEL_1 , dir1_GPIO_Port, dir1_Pin);
-  mhainw_stepper_init(&motors[1], &htim14, TIM_CHANNEL_1 , dir2_GPIO_Port, dir2_Pin);
-  mhainw_stepper_init(&motors[2], &htim16, TIM_CHANNEL_1 , dir3_GPIO_Port, dir3_Pin);
+  mhainw_stepper_init(&motors[1], &htim16, TIM_CHANNEL_1 , dir3_GPIO_Port, dir2_Pin);
+  mhainw_stepper_init(&motors[2], &htim14, TIM_CHANNEL_1 , dir2_GPIO_Port, dir2_Pin);
   mhainw_stepper_init(&motors[3], &htim17, TIM_CHANNEL_1 , dir4_GPIO_Port, dir4_Pin);
 
   mhainw_amt10_init(&encoders[0], &htim5);
@@ -147,17 +147,19 @@ int main(void)
   mhainw_amt10_init(&encoders[3], &htim4);
   mhainw_amt10_init(&chessboardenc, &htim8);
 
-  mhainw_control_init(&position_jointcontroller[0],0,0,0);
+  mhainw_control_init(&position_jointcontroller[0],3,0,0);
   mhainw_control_init(&position_jointcontroller[1],3,0,0);
-  mhainw_control_init(&position_jointcontroller[2],0,0,0);
-  mhainw_control_init(&position_jointcontroller[3],0,0,0);
+  mhainw_control_init(&position_jointcontroller[2],3,0,0);
+  mhainw_control_init(&position_jointcontroller[3],3,0,0);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  jointstate[1] = 0;
-  setpoint[1] = 0;
+  for(int i=0;i<4;i++){
+	  jointstate[i] = 0;
+	  setpoint[i] = 0;
+  }
   while (1)
   {
     /* USER CODE END WHILE */
@@ -175,14 +177,12 @@ int main(void)
 		timestamp = HAL_GetTick();
 
 		//encoder read value
-		jointstate[0] = htim2.Instance->CNT;
-		jointstate[1] += mhainw_amt10_unwrap(&encoders[1]);
-//		jointstate[1] = htim2.Instance->CNT;
+
+		jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
 		// PID output
-		mhainw_control_positioncontrol(&position_jointcontroller[1], setpoint[1], jointstate[1]);
-		mhainw_stepper_setspeed(&motors[1], position_jointcontroller[1].output);
-//
-//
+		mhainw_control_positioncontrol(&position_jointcontroller[joint], setpoint[joint], jointstate[joint]);
+		mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
+		joint = (joint+1) % 4;
 	}
 
   }

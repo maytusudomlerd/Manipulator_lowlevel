@@ -24,7 +24,6 @@ void mhainw_stepper_init(Stepper_motor *motor,TIM_HandleTypeDef *timHandle,uint3
 }
 
 void mhainw_stepper_setspeed(Stepper_motor *motor,float freq){
-//	if(motor->freq != freq){
 	if(freq > MIN_FREQUENCY){
 		HAL_GPIO_WritePin(motor->dir_port, motor->dir_pin, CW);
 		mhainw_stepper_setpwm(motor,freq,0.5);
@@ -35,7 +34,6 @@ void mhainw_stepper_setspeed(Stepper_motor *motor,float freq){
 		mhainw_stepper_setpwm(motor, 100, 0);
 	}
 	motor->freq = freq;
-//	}
 }
 
 void mhainw_stepper_setpwm(Stepper_motor *motor,float freq,float duty_cycle){

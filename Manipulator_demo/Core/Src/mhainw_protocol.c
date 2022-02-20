@@ -251,19 +251,19 @@ void jogcatesian(Protocol *uart,int32_t setpoint[]){
 //	for(int i=0;i<4;i++){
 //		setpoint[i] = jointstate[i];
 //	}
-
 }
+
 void jogjoint(Protocol *uart,int32_t setpoint[]){
 	uint8_t axis = uart->data[0];
 
 	if(axis == 8){
-		setpoint[0] += uart->data[1];
+		setpoint[0] += uart->data[1] * JOINT1_DEGTOPULSE;
 	} else if(axis == 4){
-		setpoint[1] += uart->data[1];
+		setpoint[1] += uart->data[1] * JOINT2_DEGTOPULSE;
 	} else if(axis == 2){
-		setpoint[2] += uart->data[1];
+		setpoint[2] += uart->data[1] * JOINT3_MMTOPULSE;
 	} else if(axis == 1){
-		setpoint[3] += uart->data[1];
+		setpoint[3] += uart->data[1] * JOINT4_DEGTOPULSE;
 	}
 
 }

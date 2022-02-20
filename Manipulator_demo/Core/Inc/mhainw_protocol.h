@@ -44,6 +44,11 @@
 #define MHAINW_GRIPPER_ERR           0xE5
 #define MHAINW_UINT_ERR              0xE6
 
+#define JOINT1_DEGTOPULSE            100
+#define JOINT2_DEGTOPULSE            100
+#define JOINT3_MMTOPULSE             100
+#define JOINT4_DEGTOPULSE            100
+
 typedef enum{
 	idle,
 	header,
