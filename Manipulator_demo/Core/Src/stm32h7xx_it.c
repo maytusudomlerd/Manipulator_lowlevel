@@ -29,6 +29,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
 extern Protocol uart;
+extern uint8_t Proximity_state[4];
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
@@ -387,5 +388,20 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 
 }
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
+	if(GPIO_Pin == GPIO_PIN_2){
+		Proximity_state[1] = 1;
+	}
+	else if(GPIO_Pin == GPIO_PIN_3){
+		Proximity_state[2] = 1;
+	}
+	else if(GPIO_Pin == GPIO_PIN_4){
+		Proximity_state[3] = 1;
+	}
+	else if(GPIO_Pin == GPIO_PIN_5){
+		Proximity_state[0] = 1;
+	}
+
+}
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

@@ -10,7 +10,12 @@
 
 #include "stm32h7xx_hal.h"
 
-#define MAX_FREQUENCY 300.0
+#define MAX_FREQUENCY 150.0
+#define JOINT1_MAX_FREQUENCY 150.0
+#define JOINT2_MAX_FREQUENCY 300.0
+#define JOINT3_MAX_FREQUENCY 1000.0
+#define JOINT4_MAX_FREQUENCY 500.0
+
 #define MIN_FREQUENCY 15.0
 
 #define CCW 0

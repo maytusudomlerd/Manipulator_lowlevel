@@ -6,6 +6,8 @@
  */
 
 #include"mhainw_steppermotor.h"
+#include "tim.h"
+
 
 
 void mhainw_stepper_init(Stepper_motor *motor,TIM_HandleTypeDef *timHandle,uint32_t tim_ch,
@@ -25,10 +27,10 @@ void mhainw_stepper_init(Stepper_motor *motor,TIM_HandleTypeDef *timHandle,uint3
 
 void mhainw_stepper_setspeed(Stepper_motor *motor,float freq){
 	if(freq > MIN_FREQUENCY){
-		HAL_GPIO_WritePin(motor->dir_port, motor->dir_pin, CW);
+		HAL_GPIO_WritePin(motor->dir_port, motor->dir_pin, CCW);
 		mhainw_stepper_setpwm(motor,freq,0.5);
 	} else if(freq < (-1 * MIN_FREQUENCY)) {
-		HAL_GPIO_WritePin(motor->dir_port, motor->dir_pin, CCW);
+		HAL_GPIO_WritePin(motor->dir_port, motor->dir_pin, CW);
 		mhainw_stepper_setpwm(motor, -1 * freq,0.5);
 	} else {
 		mhainw_stepper_setpwm(motor, 100, 0);
@@ -37,11 +39,30 @@ void mhainw_stepper_setspeed(Stepper_motor *motor,float freq){
 }
 
 void mhainw_stepper_setpwm(Stepper_motor *motor,float freq,float duty_cycle){
-//	if(freq < MIN_FREQUENCY){
-//		freq = MIN_FREQUENCY;
+
+//	if(freq > MAX_FREQUENCY) {
+//		freq = MAX_FREQUENCY;
 //	}
-	if(freq > MAX_FREQUENCY) {
-		freq = MAX_FREQUENCY;
+//
+	if(motor->timHandle == &htim13){
+		if(freq > JOINT1_MAX_FREQUENCY){
+			freq = JOINT1_MAX_FREQUENCY;
+		}
+	}
+	else if(motor->timHandle == &htim16){
+		if(freq > JOINT2_MAX_FREQUENCY){
+			freq = JOINT2_MAX_FREQUENCY;
+		}
+	}
+	else if(motor->timHandle == &htim14){
+		if(freq > JOINT3_MAX_FREQUENCY){
+			freq = JOINT3_MAX_FREQUENCY;
+		}
+	}
+	else if(motor->timHandle == &htim17){
+		if(freq > JOINT4_MAX_FREQUENCY){
+			freq = JOINT4_MAX_FREQUENCY;
+		}
 	}
 
 	uint16_t period = 1e6 / freq;
@@ -51,3 +72,4 @@ void mhainw_stepper_setpwm(Stepper_motor *motor,float freq,float duty_cycle){
 	__HAL_TIM_SET_COMPARE(motor->timHandle, motor->tim_ch, pwm);
 
 }
+
