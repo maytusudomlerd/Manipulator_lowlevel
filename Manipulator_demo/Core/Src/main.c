@@ -143,8 +143,6 @@ int main(void)
   mhainw_stepper_init(&motors[2], &htim14, TIM_CHANNEL_1 , dir2_GPIO_Port, dir2_Pin);
   mhainw_stepper_init(&motors[3], &htim17, TIM_CHANNEL_1 , dir4_GPIO_Port, dir4_Pin);
 
-  mhainw_robot_sethome();
-
   mhainw_amt10_init(&encoders[0], &htim5);
   mhainw_amt10_init(&encoders[1], &htim2);
   mhainw_amt10_init(&encoders[2], &htim3);
@@ -160,13 +158,14 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  mhainw_robot_sethome();
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
-	  if (HAL_GetTick() - timestamp >= 1){
+	  if(HAL_GetTick() - timestamp >= 1){
 		timestamp = HAL_GetTick();
 		//encoder read value
 		jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
@@ -239,60 +238,52 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 void mhainw_robot_sethome(){
-	uint8_t jointset = 0;
-	uint8_t sethome[2] = {0};
 
-	//state 1 : move to ready position
-	while(sethome[0] == 0){
-		while(Proximity_state[jointset] != 1){
+	//offset
+	mhainw_stepper_setspeed(&motors[2], -1000);
+	HAL_Delay(1000);
+	mhainw_stepper_setspeed(&motors[2], 0);
+	mhainw_stepper_setspeed(&motors[0], -100);
+	mhainw_stepper_setspeed(&motors[1], 300);
+	HAL_Delay(500);
+	mhainw_stepper_setspeed(&motors[0], 0);
+	mhainw_stepper_setspeed(&motors[1], 0);
+	HAL_Delay(500);
 
-			if(jointset == 0){
-				mhainw_stepper_setspeed(&motors[jointset], 130);
-			}
-			else if(jointset == 1){
-				mhainw_stepper_setspeed(&motors[jointset], -300);
-			}
-			else{
-				mhainw_stepper_setspeed(&motors[jointset], 1000);
-			}
+	//state 1 set joint 4
+	while(Proximity_state[3] != 1){
+		mhainw_stepper_setspeed(&motors[3], 300);
+	}
+	mhainw_stepper_setspeed(&motors[3], 0);
+
+	//state 2 : move to home position
+	while(Proximity_state[0] != 1 || Proximity_state[1] !=1 || Proximity_state[2] != 1){
+
+		if(Proximity_state[0] == 1){
+			mhainw_stepper_setspeed(&motors[0], 0);
+		} else{
+			mhainw_stepper_setspeed(&motors[0], 100);
 		}
-		mhainw_stepper_setspeed(&motors[jointset], 0);
-		if(jointset >= 1){
-			sethome[0] = 1;
+		if(Proximity_state[1] == 1){
+			mhainw_stepper_setspeed(&motors[1], 0);
+		} else {
+			mhainw_stepper_setspeed(&motors[1], -300);
 		}
-		jointset++;
+		if(Proximity_state[2] == 1){
+			mhainw_stepper_setspeed(&motors[2], 0);
+		} else{
+			mhainw_stepper_setspeed(&motors[2], 1000);
+		}
 	}
 
-	//state 2 : move to home(0) position
+	//state 3 : set current position and offset home configuration
 	for(int i = 0;i<4;i++){
-		jointstate[i] = 0;
+		jointstate[i] = mhainw_amt10_unwrap(&encoders[i]);
 		setpoint[i] = jointstate[i];
 	}
 
-
-	//state 3 : move to ready position
-//	jointset = 0;
-//	Proximity_state[0] = 0;
-//	Proximity_state[1] = 0;
-//	while(sethome[1] == 0){
-//		while(Proximity_state[jointset] != 1){
-//			if(jointset == 1){
-//				mhainw_stepper_setspeed(&motors[jointset], -100);
-//			}
-//			else{
-//				mhainw_stepper_setspeed(&motors[jointset], 100);
-//			}
-//		}
-//		mhainw_stepper_setspeed(&motors[jointset], 0);
-//		jointset++;
-//
-//		if(jointset >= 1){
-//			sethome[1] = 1;
-//		}
-//
-//	}
-
 }
+
 /* USER CODE END 4 */
 
 /**

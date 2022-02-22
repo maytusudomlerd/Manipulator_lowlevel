@@ -1,19 +1,17 @@
 /*
- * mhainw_kinematics.c
+ * kinematics.c
  *
- *  Created on: Feb 9, 2022
- *      Author: perasate k.
+ *  Created on: Feb 22, 2022
+ *      Author: K. Peerasate ,U. Maytus
  */
+#include "math.h"
 
-#include <math.h>
-
-void FPK(const double q[])
-{
-	double X[4] = {0};
+double *FPK(double q[]){
 	double eulShaped_idx_2;
 	double p_tmp;
 	double p_tmp_tmp;
 	double p_tmp_tmp_tmp;
+	double X[4]= {0};
 	p_tmp_tmp_tmp = q[0] + q[1];
 	p_tmp_tmp = p_tmp_tmp_tmp + q[3];
 	p_tmp = sin(p_tmp_tmp);
@@ -26,6 +24,5 @@ void FPK(const double q[])
 	X[1] = (260.0 * cos(p_tmp_tmp_tmp) + 310.0 * cos(q[0])) + 90.0 * p_tmp_tmp;
 	X[2] = (260.0 * sin(p_tmp_tmp_tmp) + 310.0 * sin(q[0])) + 90.0 * p_tmp;
 	X[3] = 224.95 - q[2];
-	memcpy()
+	return X;
 }
-

@@ -49,6 +49,7 @@
 #define JOINT3_MMTOPULSE             2100
 #define JOINT4_DEGTOPULSE            91
 
+
 typedef enum{
 	idle,
 	header,
