@@ -9,6 +9,10 @@
 #include "usart.h"
 
 extern uint32_t setpoint[4];
+extern double tasksetpoint[4];
+extern double jointsetpoint[4];
+extern double jointconfig[4];
+extern double taskconfig[4];
 
 void mhainw_protocol_init(Protocol *uart,UART_HandleTypeDef *handle){
 	/*
@@ -91,10 +95,11 @@ void mhainw_protocol_state(Protocol *uart){
 						UARTsentACK(uart, MHAINW_SETHOME_ACK);
 						break;
 					case MHAINW_JOG_CATESIAN:
+						jogcatesian(uart,&setpoint);
 						UARTsentACK(uart, MHAINW_JOG_ACK);
 						break;
 					case MHAINW_JOG_JOINT:
-						jogjoint(uart,setpoint);
+						jogjoint(uart,&setpoint);
 						UARTsentACK(uart, MHAINW_JOG_ACK);
 						break;
 					case MAHINW_MOVE_CATESIAN :
@@ -232,28 +237,40 @@ void UARTsentACK(Protocol *uart,uint8_t ack){
 	uint8_t temp[] = { 0xFF, 0x02 , ack};
 	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
 }
-void jogcatesian(Protocol *uart,int32_t setpoint[]){
+void jogcatesian(Protocol *uart,int32_t *setpoint){
 	uint8_t axis = uart->data[0];
-	int8_t step = uart->data[1];
-	uint8_t taskjoint[4] = {0};
+	double step = uart->data[1] * DEGTORAD;
+	double movingstep[4] = {0}; //{ Rz X Y Z}
+	double dq[4] = {0};
 
 	if(axis == 8){
-		taskjoint[0] = step;
+		movingstep[1] = step;
 	} else if(axis == 4){
-		taskjoint[1] = step;
+		movingstep[2] = step;
 	} else if(axis == 2){
-		taskjoint[2] = step;
+		movingstep[3] = step;
 	} else if(axis == 1){
-		taskjoint[3] = step;
+		movingstep[0] = step;
 	}
 
-//	jointstate = jacobian_inverse * taskjoint
-//	for(int i=0;i<4;i++){
-//		setpoint[i] = jointstate[i];
-//	}
+	IVK(jointconfig,movingstep,dq);
+
+	for(int i=0;i<4;i++){
+		jointsetpoint[i] += jointconfig[i] + dq[i];
+	}
+	if(axis == 8){
+		setpoint[0] = jointsetpoint[0] * JOINT1_RADTOPULSE;
+	} else if(axis == 4){
+		setpoint[1] = jointsetpoint[1] * JOINT2_RADTOPULSE;
+	} else if(axis == 2){
+		setpoint[2] = jointsetpoint[2] * JOINT3_MMTOPULSE;
+	} else if(axis == 1){
+		setpoint[3] = jointsetpoint[3] * JOINT4_RADTOPULSE;
+	}
+
 }
 
-void jogjoint(Protocol *uart,int32_t setpoint[]){
+void jogjoint(Protocol *uart,int32_t *setpoint){
 	uint8_t axis = uart->data[0];
 
 	if(axis == 8){

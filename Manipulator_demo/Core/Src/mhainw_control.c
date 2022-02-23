@@ -15,7 +15,7 @@ void mhainw_control_init(Controller *pid,float kp, float ki, float kd){
 	pid->output = 0.0;
 }
 
-void mhainw_control_positioncontrol(Controller *pid, float setpoint, float jointstate){
+void mhainw_control_controllerupdate(Controller *pid, float setpoint, float jointstate){
 	float error = setpoint - jointstate;
 	//update proportional term
 	pid->p_term = pid->kp * error;

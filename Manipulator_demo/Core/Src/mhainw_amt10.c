@@ -2,7 +2,7 @@
  * mhainw_amt10.c
  *
  *  Created on: Feb 4, 2022
- *      Author: maytus
+ *      Author: U. maytus
  */
 #include "mhainw_amt10.h"
 

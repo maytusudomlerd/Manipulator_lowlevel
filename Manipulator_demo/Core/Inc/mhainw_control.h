@@ -20,7 +20,7 @@ typedef struct{
 }Controller;
 
 void mhainw_control_init(Controller *pid,float kp, float ki, float kd);
-void mhainw_control_positioncontrol(Controller *pid, float setpoint, float jointstate);
+void mhainw_control_controllerupdate(Controller *pid, float setpoint, float jointstate);
 
 
 

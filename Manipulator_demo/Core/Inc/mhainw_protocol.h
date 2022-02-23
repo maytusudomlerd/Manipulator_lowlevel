@@ -48,7 +48,10 @@
 #define JOINT2_DEGTOPULSE            23
 #define JOINT3_MMTOPULSE             2100
 #define JOINT4_DEGTOPULSE            91
-
+#define JOINT1_RADTOPULSE            2068
+#define JOINT2_RADTOPULSE            2068
+#define JOINT4_RADTOPULSE            5215
+#define DEGTORAD                     0.01745
 
 typedef enum{
 	idle,

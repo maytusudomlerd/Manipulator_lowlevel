@@ -32,6 +32,8 @@
 #include "mhainw_amt10.h"
 #include "mhainw_protocol.h"
 #include "mhainw_control.h"
+#include "mhainw_kinematics.h"
+#include "mhainw_kalmanfilter.h"
 
 /* USER CODE END Includes */
 
@@ -43,6 +45,15 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define PI 3.1415926
+#define kalman_Q 1
+#define kalman_R 1
+
+#define J1_ENCODERRESOLUTION 8192
+#define J2_ENCODERRESOLUTION 112721.92
+#define J3_ENCODERRESOLUTION 8192
+#define J4_ENCODERRESOLUTION 8192
+
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -54,28 +65,31 @@
 
 /* USER CODE BEGIN PV */
 
-float angle = 0;
-double changerate= 0.1;
-float sineout;
-
 Protocol user;
 
 Stepper_motor motors[4];
 
 Encoder encoders[4];
 Encoder chessboardenc;
-int32_t jointstate[4];
 int32_t chessboardpos;
 
-uint32_t timestamp = 0;
-
-int32_t setpoint[4];
 float target_position[4] = { 0 };
+int32_t jointstate[4]; //real time value from encoder
+int32_t setpoint[4];   //target point in encoder unit(pulse)
+double taskconfig[4] = {0};  //now position in task space
+double jointconfig[4] = {0}; //now position in configuration space
+double tasksetpoint[4]; //target point in task space
+double jointsetpoint[4]; //target point in configuration space
 uint8_t joint = 0;
+
+uint32_t timestamp = 0;
 Controller position_jointcontroller[4];
+Controller velocity_jointcontroller[4];
+Kalmanfilter kalmanjoint[4];
 
 uint8_t Proximity_state[4];
-uint8_t sethome[2] = {0};
+
+
 
 /* USER CODE END PV */
 
@@ -154,26 +168,44 @@ int main(void)
   mhainw_control_init(&position_jointcontroller[2],3,0,0);
   mhainw_control_init(&position_jointcontroller[3],3,0,0);
 
+  mhainw_control_init(&velocity_jointcontroller[0],3,0,0);
+  mhainw_control_init(&velocity_jointcontroller[1],3,0,0);
+  mhainw_control_init(&velocity_jointcontroller[2],3,0,0);
+  mhainw_control_init(&velocity_jointcontroller[3],3,0,0);
+
+  mhainw_kalmanfilter_init(&kalmanjoint[0],0,0,0,0,0,0,kalman_Q,kalman_R);
+  mhainw_kalmanfilter_init(&kalmanjoint[1],0,0,0,0,0,0,kalman_Q,kalman_R);
+  mhainw_kalmanfilter_init(&kalmanjoint[2],0,0,0,0,0,0,kalman_Q,kalman_R);
+  mhainw_kalmanfilter_init(&kalmanjoint[3],0,0,0,0,0,0,kalman_Q,kalman_R);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
   mhainw_robot_sethome();
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
 
-	  if(HAL_GetTick() - timestamp >= 1){
-		timestamp = HAL_GetTick();
-		//encoder read value
-		jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
-		// PID output
-		mhainw_control_positioncontrol(&position_jointcontroller[joint], setpoint[joint], jointstate[joint]);
-		mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
-		joint = (joint+1) % 4;
-	}
+//	  if(HAL_GetTick() - timestamp >= 1){
+//		timestamp = HAL_GetTick();
+//		//encoder read value
+//		for(joint = 0;joint <4;joint++){
+//			jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
+//			if(joint == 0 || joint == 2 || joint == 3){
+//				jointconfig[joint] =  (jointstate[joint] / J1_ENCODERRESOLUTION) * 2 * PI;
+//			} else if(joint == 1){
+//				jointconfig[joint] =  (jointstate[joint] / J2_ENCODERRESOLUTION) * 2 * PI;
+//			}
+//			// PID output
+//			mhainw_control_controllerupdate(&position_jointcontroller[joint], setpoint[joint], jointstate[joint]);
+//			mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
+//		}
+//	}
 
   }
   /* USER CODE END 3 */
@@ -238,17 +270,19 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 void mhainw_robot_sethome(){
+	uint8_t sethome[3] = {0};
 
 	//offset
-	mhainw_stepper_setspeed(&motors[2], -1000);
-	HAL_Delay(1000);
-	mhainw_stepper_setspeed(&motors[2], 0);
-	mhainw_stepper_setspeed(&motors[0], -100);
-	mhainw_stepper_setspeed(&motors[1], 300);
-	HAL_Delay(500);
-	mhainw_stepper_setspeed(&motors[0], 0);
-	mhainw_stepper_setspeed(&motors[1], 0);
-	HAL_Delay(500);
+//	mhainw_stepper_setspeed(&motors[0], -100);
+//	mhainw_stepper_setspeed(&motors[1], 300);
+//	mhainw_stepper_setspeed(&motors[2], -1000);
+//	mhainw_stepper_setspeed(&motors[3], -1000);
+//	HAL_Delay(500);
+//	mhainw_stepper_setspeed(&motors[0], 0);
+//	mhainw_stepper_setspeed(&motors[1], 0);
+//	mhainw_stepper_setspeed(&motors[2], 0);
+//	mhainw_stepper_setspeed(&motors[3], 0);
+//	HAL_Delay(500);
 
 	//state 1 set joint 4
 	while(Proximity_state[3] != 1){
@@ -257,31 +291,34 @@ void mhainw_robot_sethome(){
 	mhainw_stepper_setspeed(&motors[3], 0);
 
 	//state 2 : move to home position
-	while(Proximity_state[0] != 1 || Proximity_state[1] !=1 || Proximity_state[2] != 1){
+	while(sethome[0] != 1 || sethome[1] !=1 || sethome[2] != 1){
 
 		if(Proximity_state[0] == 1){
 			mhainw_stepper_setspeed(&motors[0], 0);
+			sethome[0] = 1;
 		} else{
-			mhainw_stepper_setspeed(&motors[0], 100);
+			mhainw_stepper_setspeed(&motors[0], 150);
 		}
 		if(Proximity_state[1] == 1){
 			mhainw_stepper_setspeed(&motors[1], 0);
+			sethome[1] = 1;
 		} else {
 			mhainw_stepper_setspeed(&motors[1], -300);
 		}
 		if(Proximity_state[2] == 1){
 			mhainw_stepper_setspeed(&motors[2], 0);
+			sethome[2] = 1;
 		} else{
 			mhainw_stepper_setspeed(&motors[2], 1000);
 		}
 	}
-
+	HAL_Delay(1000);
 	//state 3 : set current position and offset home configuration
+
 	for(int i = 0;i<4;i++){
 		jointstate[i] = mhainw_amt10_unwrap(&encoders[i]);
 		setpoint[i] = jointstate[i];
 	}
-
 }
 
 /* USER CODE END 4 */
