@@ -239,34 +239,30 @@ void UARTsentACK(Protocol *uart,uint8_t ack){
 }
 void jogcatesian(Protocol *uart,int32_t *setpoint){
 	uint8_t axis = uart->data[0];
-	double step = uart->data[1] * DEGTORAD;
+	double step = uart->data[1];
 	double movingstep[4] = {0}; //{ Rz X Y Z}
 	double dq[4] = {0};
 
-	if(axis == 8){
+	if(axis == 8){ //x
 		movingstep[1] = step;
-	} else if(axis == 4){
+	} else if(axis == 4){ //y
 		movingstep[2] = step;
-	} else if(axis == 2){
+	} else if(axis == 2){ //z
 		movingstep[3] = step;
-	} else if(axis == 1){
-		movingstep[0] = step;
+	} else if(axis == 1){  //rz
+		movingstep[0] = step * DEGTORAD;
 	}
 
 	IVK(jointconfig,movingstep,dq);
 
 	for(int i=0;i<4;i++){
-		jointsetpoint[i] += jointconfig[i] + dq[i];
+		jointsetpoint[i] = jointconfig[i] + dq[i];
 	}
-	if(axis == 8){
-		setpoint[0] = jointsetpoint[0] * JOINT1_RADTOPULSE;
-	} else if(axis == 4){
-		setpoint[1] = jointsetpoint[1] * JOINT2_RADTOPULSE;
-	} else if(axis == 2){
-		setpoint[2] = jointsetpoint[2] * JOINT3_MMTOPULSE;
-	} else if(axis == 1){
-		setpoint[3] = jointsetpoint[3] * JOINT4_RADTOPULSE;
-	}
+
+	setpoint[0] = jointsetpoint[0] * JOINT1_RADTOPULSE;
+	setpoint[1] = jointsetpoint[1] * JOINT2_RADTOPULSE;
+	setpoint[2] = jointsetpoint[2] * JOINT3_MMTOPULSE;
+	setpoint[3] = jointsetpoint[3] * JOINT4_RADTOPULSE;
 
 }
 

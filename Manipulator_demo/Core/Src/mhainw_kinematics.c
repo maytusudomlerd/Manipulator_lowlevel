@@ -11,7 +11,6 @@ void FPK(double *q,double *taskconfig){
 	double p_tmp;
 	double p_tmp_tmp;
 	double p_tmp_tmp_tmp;
-	double X[4]= {0};
 	p_tmp_tmp_tmp = q[0] + q[1];
 	p_tmp_tmp = p_tmp_tmp_tmp + q[3];
 	p_tmp = sin(p_tmp_tmp);
@@ -20,11 +19,11 @@ void FPK(double *q,double *taskconfig){
 	if (sqrt(p_tmp_tmp * p_tmp_tmp + p_tmp * p_tmp) < 2.2204460492503131e-15) {
 	eulShaped_idx_2 = 0.0;
 	}
-	X[0] = eulShaped_idx_2;
-	X[1] = (260.0 * cos(p_tmp_tmp_tmp) + 310.0 * cos(q[0])) + 90.0 * p_tmp_tmp;
-	X[2] = (260.0 * sin(p_tmp_tmp_tmp) + 310.0 * sin(q[0])) + 90.0 * p_tmp;
-	X[3] = 224.95 - q[2];
-	memcpy(taskconfig,X,strlen(X)+1);
+	taskconfig[0] = eulShaped_idx_2;
+	taskconfig[1] = (260.0 * cos(p_tmp_tmp_tmp) + 310.0 * cos(q[0])) + 90.0 * p_tmp_tmp;
+	taskconfig[2] = (260.0 * sin(p_tmp_tmp_tmp) + 310.0 * sin(q[0])) + 90.0 * p_tmp;
+	taskconfig[3] = 224.95 - q[2];
+	//memcpy(taskconfig,X,strlen(X)+1);
 }
 void IPK(double *X, double gramma, double *jointconfig)
 {
@@ -35,7 +34,6 @@ void IPK(double *X, double gramma, double *jointconfig)
   double s;
   double s2;
   int i;
-  double q[4]={0};
   c = cos(X[0]);
   s = sin(X[0]);
   b_c[0] = c;
@@ -57,11 +55,10 @@ void IPK(double *X, double gramma, double *jointconfig)
   q1 = atan2(-260.0 * s2 * p_0w[0] + c * p_0w[1],
                      c * p_0w[0] + 260.0 * s2 * p_0w[1]);
   c = atan2(s2, s);
-  q[0] = q1;
-  q[1] = c;
-  q[2] = 405.0 - (X[3] + 180.05);
-  q[3] = X[0] - (q1 + c);
-  memcpy(jointconfig,q,strlen(q)+1);
+  jointconfig[0] = q1;
+  jointconfig[1] = c;
+  jointconfig[2] = 405.0 - (X[3] + 180.05);
+  jointconfig[3] = X[0] - (q1 + c);
 }
 
 /*
@@ -87,13 +84,13 @@ void IVK(double *q, double *dX, double *dq)
   d_dq_tmp = sin(q[1] + q[3]);
   e_dq_tmp = cos(q[0]);
   f_dq_tmp = sin(q[0]);
-  Dq[0] = ((dX[1] * dq_tmp + dX[2] * dq_tmp_tmp) + 90.0 * dX[0] * b_dq_tmp) /
+  dq[0] = ((dX[1] * dq_tmp + dX[2] * dq_tmp_tmp) + 90.0 * dX[0] * b_dq_tmp) /
     (310.0 * c_dq_tmp);
-  Dq[1] = -(((((26.0 * dX[1] * dq_tmp + 2790.0 * dX[0] * d_dq_tmp) + 26.0 * dX[2]
+  dq[1] = -(((((26.0 * dX[1] * dq_tmp + 2790.0 * dX[0] * d_dq_tmp) + 26.0 * dX[2]
                * dq_tmp_tmp) + 31.0 * dX[1] * e_dq_tmp) + 2340.0 * dX[0] *
              b_dq_tmp) + 31.0 * dX[2] * f_dq_tmp) / (8060.0 * c_dq_tmp);
-  Dq[2] = -dX[3];
-  Dq[3] = (((90.0 * dX[0] * d_dq_tmp + dX[1] * e_dq_tmp) + 260.0 * dX[0] *
+  dq[2] = -dX[3];
+  dq[3] = (((90.0 * dX[0] * d_dq_tmp + dX[1] * e_dq_tmp) + 260.0 * dX[0] *
             c_dq_tmp) + dX[2] * f_dq_tmp) / (260.0 * c_dq_tmp);
-  memcpy(dq, Dq, strlen(Dq) + 1);
+
 }

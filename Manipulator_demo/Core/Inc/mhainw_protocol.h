@@ -45,12 +45,14 @@
 #define MHAINW_UINT_ERR              0xE6
 
 #define JOINT1_DEGTOPULSE            23
-#define JOINT2_DEGTOPULSE            23
-#define JOINT3_MMTOPULSE             2100
+#define JOINT2_DEGTOPULSE            313.116
+#define JOINT3_MMTOPULSE             2731
 #define JOINT4_DEGTOPULSE            91
-#define JOINT1_RADTOPULSE            2068
-#define JOINT2_RADTOPULSE            2068
-#define JOINT4_RADTOPULSE            5215
+
+#define JOINT1_RADTOPULSE            1303
+#define JOINT2_RADTOPULSE            17940
+#define JOINT4_RADTOPULSE            5216
+
 #define DEGTORAD                     0.01745
 
 typedef enum{
@@ -84,5 +86,8 @@ uint8_t UARTgetRxhead(Protocol *uart);
 void UARTsentERR(Protocol *uart,uint8_t errtype);
 void UARTsentACK(Protocol *uart,uint8_t ack);
 void UARTsendit(Protocol *uart);
+
+void jogcatesian(Protocol *uart,int32_t *setpoint);
+void jogjoint(Protocol *uart,int32_t *setpoint);
 
 #endif /* INC_MHAINW_PROTOCOL_H_ */

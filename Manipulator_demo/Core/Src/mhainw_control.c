@@ -28,7 +28,7 @@ void mhainw_control_controllerupdate(Controller *pid, float setpoint, float join
 	pid->perv_error = error;
 
 	pid->output = pid->p_term ;
-//	return pid->output;
+
 }
 
 

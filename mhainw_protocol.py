@@ -125,8 +125,8 @@ def tx_move(position=[0,0,0,0], ref='home',type='c'):
 
 if __name__ == "__main__":
     # tx_sethome()
-    # tx_jog(axis='j4', step=-15 , type='j')
-    tx_jog(axis='x', step=15 , type='c')
+    tx_jog(axis='j4', step=-15 , type='j')
+    # tx_jog(axis='y', step=10, type='c')
     # tx_move(ref='home',type='c',position=[100,-100,100,-100])
     # print(Rx())
     

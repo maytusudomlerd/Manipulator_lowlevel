@@ -53,6 +53,15 @@
 #define J3_ENCODERRESOLUTION 8192
 #define J4_ENCODERRESOLUTION 8192
 
+#define J1_OFFSETTOHOMECONFIGURATION 1718
+#define J2_OFFSETTOHOMECONFIGURATION -48500
+#define J3_OFFSETTOHOMECONFIGURATION 0
+#define J4_OFFSETTOHOMECONFIGURATION 6548
+
+#define J1_WORKSPACE 3436
+#define J2_WORKSPACE 97000
+#define J3_WORKSPACE 42000
+#define J4_WORKSPACE 13096
 
 /* USER CODE END PD */
 
@@ -74,12 +83,17 @@ Encoder chessboardenc;
 int32_t chessboardpos;
 
 float target_position[4] = { 0 };
-int32_t jointstate[4]; //real time value from encoder
+double jointstate[4]; //real time value from encoder
 int32_t setpoint[4];   //target point in encoder unit(pulse)
 double taskconfig[4] = {0};  //now position in task space
 double jointconfig[4] = {0}; //now position in configuration space
+double jointconfig_t[4] = {0};
 double tasksetpoint[4]; //target point in task space
 double jointsetpoint[4]; //target point in configuration space
+
+float jointworkspace[4] = {J1_WORKSPACE,J2_WORKSPACE,J3_WORKSPACE,J4_WORKSPACE};
+uint16_t motor_max_frequency[4] = {JOINT1_MAX_FREQUENCY,JOINT2_MAX_FREQUENCY,JOINT3_MAX_FREQUENCY,JOINT4_MAX_FREQUENCY};
+uint32_t radtopulse[4] = {JOINT1_RADTOPULSE,JOINT2_RADTOPULSE,JOINT3_MMTOPULSE,JOINT4_RADTOPULSE};
 uint8_t joint = 0;
 
 uint32_t timestamp = 0;
@@ -97,6 +111,7 @@ uint8_t Proximity_state[4];
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void mhainw_robot_sethome();
+float map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -163,9 +178,9 @@ int main(void)
   mhainw_amt10_init(&encoders[3], &htim4);
   mhainw_amt10_init(&chessboardenc, &htim8);
 
-  mhainw_control_init(&position_jointcontroller[0],3,0,0);
-  mhainw_control_init(&position_jointcontroller[1],3,0,0);
-  mhainw_control_init(&position_jointcontroller[2],3,0,0);
+  mhainw_control_init(&position_jointcontroller[0],5,1,0);
+  mhainw_control_init(&position_jointcontroller[1],7,1,0);
+  mhainw_control_init(&position_jointcontroller[2],3.5,0,0);
   mhainw_control_init(&position_jointcontroller[3],3,0,0);
 
   mhainw_control_init(&velocity_jointcontroller[0],3,0,0);
@@ -184,6 +199,18 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 
   mhainw_robot_sethome();
+//  double dX[4] = {0,0,0,-10};
+//  jointconfig_t[0] = 0.7;
+//  jointconfig_t[1] = 3.14/2;
+//  jointconfig_t[2] = 14;
+//  jointconfig_t[3] = -0.7;
+//  FPK(jointconfig_t,taskconfig);
+//  IVK(jointconfig_t,dX,dq);
+//  jointsetpoint[0] = dq[0] + jointconfig_t[0];
+//  jointsetpoint[1] = dq[1] + jointconfig_t[1];
+//  jointsetpoint[2] = dq[2] + jointconfig_t[2];
+//  jointsetpoint[3] = dq[3] + jointconfig_t[3];
+//  FPK(jointsetpoint,tasksetpoint);
 
   while (1)
   {
@@ -191,21 +218,23 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-//	  if(HAL_GetTick() - timestamp >= 1){
-//		timestamp = HAL_GetTick();
-//		//encoder read value
-//		for(joint = 0;joint <4;joint++){
-//			jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
-//			if(joint == 0 || joint == 2 || joint == 3){
-//				jointconfig[joint] =  (jointstate[joint] / J1_ENCODERRESOLUTION) * 2 * PI;
-//			} else if(joint == 1){
-//				jointconfig[joint] =  (jointstate[joint] / J2_ENCODERRESOLUTION) * 2 * PI;
-//			}
-//			// PID output
-//			mhainw_control_controllerupdate(&position_jointcontroller[joint], setpoint[joint], jointstate[joint]);
-//			mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
-//		}
-//	}
+	  if(HAL_GetTick() - timestamp >= 1){
+		timestamp = HAL_GetTick();
+
+		for(joint = 0;joint <4;joint++){
+			//read encoder
+			jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
+			//convert pulse to rad
+			jointconfig[joint] =  jointstate[joint] / radtopulse[joint];
+			// PID output
+			mhainw_control_controllerupdate(&position_jointcontroller[joint], setpoint[joint], jointstate[joint]);
+			//map PID output to motor frequency range
+			position_jointcontroller[joint].output = map(position_jointcontroller[joint].output, 0,
+					jointworkspace[joint], ALLJOINT_MIN_FREQUENCY, motor_max_frequency[joint]);
+			//drive motor
+			mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
+		}
+	}
 
   }
   /* USER CODE END 3 */
@@ -273,16 +302,16 @@ void mhainw_robot_sethome(){
 	uint8_t sethome[3] = {0};
 
 	//offset
-//	mhainw_stepper_setspeed(&motors[0], -100);
-//	mhainw_stepper_setspeed(&motors[1], 300);
-//	mhainw_stepper_setspeed(&motors[2], -1000);
-//	mhainw_stepper_setspeed(&motors[3], -1000);
-//	HAL_Delay(500);
-//	mhainw_stepper_setspeed(&motors[0], 0);
-//	mhainw_stepper_setspeed(&motors[1], 0);
-//	mhainw_stepper_setspeed(&motors[2], 0);
-//	mhainw_stepper_setspeed(&motors[3], 0);
-//	HAL_Delay(500);
+	mhainw_stepper_setspeed(&motors[0], -100);
+	mhainw_stepper_setspeed(&motors[1], 300);
+	mhainw_stepper_setspeed(&motors[2], -1000);
+	mhainw_stepper_setspeed(&motors[3], -1000);
+	HAL_Delay(500);
+	mhainw_stepper_setspeed(&motors[0], 0);
+	mhainw_stepper_setspeed(&motors[1], 0);
+	mhainw_stepper_setspeed(&motors[2], 0);
+	mhainw_stepper_setspeed(&motors[3], 0);
+	HAL_Delay(500);
 
 	//state 1 set joint 4
 	while(Proximity_state[3] != 1){
@@ -315,10 +344,23 @@ void mhainw_robot_sethome(){
 	HAL_Delay(1000);
 	//state 3 : set current position and offset home configuration
 
-	for(int i = 0;i<4;i++){
-		jointstate[i] = mhainw_amt10_unwrap(&encoders[i]);
-		setpoint[i] = jointstate[i];
-	}
+	htim5.Instance->CNT = 0;
+	htim2.Instance->CNT = 0;
+	htim3.Instance->CNT = 0;
+	htim4.Instance->CNT = 0;
+	jointstate[0] = J1_OFFSETTOHOMECONFIGURATION;
+	setpoint[0] = J1_OFFSETTOHOMECONFIGURATION;
+	jointstate[1] = J2_OFFSETTOHOMECONFIGURATION;
+	setpoint[1] = J2_OFFSETTOHOMECONFIGURATION;
+	jointstate[2] = J3_OFFSETTOHOMECONFIGURATION;
+	setpoint[2] = J3_OFFSETTOHOMECONFIGURATION;
+	jointstate[3] = J4_OFFSETTOHOMECONFIGURATION;
+	setpoint[3] = J4_OFFSETTOHOMECONFIGURATION;
+}
+
+float map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
 /* USER CODE END 4 */
