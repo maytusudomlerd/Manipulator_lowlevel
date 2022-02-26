@@ -9,6 +9,7 @@
 #define INC_MHAINW_PROTOCOL_H_
 
 #include "usart.h"
+#include "string.h"
 
 #define MHAINW_HEADER                0xFF
 
@@ -44,14 +45,14 @@
 #define MHAINW_GRIPPER_ERR           0xE5
 #define MHAINW_UINT_ERR              0xE6
 
-#define JOINT1_DEGTOPULSE            23
+#define JOINT1_DEGTOPULSE            23.0
 #define JOINT2_DEGTOPULSE            313.116
-#define JOINT3_MMTOPULSE             2731
-#define JOINT4_DEGTOPULSE            91
+#define JOINT3_MMTOPULSE             2731.0
+#define JOINT4_DEGTOPULSE            91.0
 
-#define JOINT1_RADTOPULSE            1303
-#define JOINT2_RADTOPULSE            17940
-#define JOINT4_RADTOPULSE            5216
+#define JOINT1_RADTOPULSE            1303.0
+#define JOINT2_RADTOPULSE            17940.0
+#define JOINT4_RADTOPULSE            5216.0
 
 #define DEGTORAD                     0.01745
 
@@ -87,7 +88,7 @@ void UARTsentERR(Protocol *uart,uint8_t errtype);
 void UARTsentACK(Protocol *uart,uint8_t ack);
 void UARTsendit(Protocol *uart);
 
-void jogcatesian(Protocol *uart,int32_t *setpoint);
-void jogjoint(Protocol *uart,int32_t *setpoint);
+void jogcatesian(Protocol *uart,double *setpoint);
+void jogjoint(Protocol *uart,double *setpoint);
 
 #endif /* INC_MHAINW_PROTOCOL_H_ */

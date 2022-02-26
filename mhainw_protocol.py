@@ -1,6 +1,6 @@
 import serial
 
-ser = serial.Serial('/dev/tty.usbmodem1424203', 256000, timeout=1)
+ser = serial.Serial('/dev/tty.usbmodem1414203', 256000, timeout=1)
 
 def checksum(data):
     return ~(sum(data)) & 0xff
@@ -125,8 +125,8 @@ def tx_move(position=[0,0,0,0], ref='home',type='c'):
 
 if __name__ == "__main__":
     # tx_sethome()
-    tx_jog(axis='j4', step=-15 , type='j')
-    # tx_jog(axis='y', step=10, type='c')
+    # tx_jog(axis='j1', step=-15 , type='j')
+    tx_jog(axis='x', step=10, type='c')
     # tx_move(ref='home',type='c',position=[100,-100,100,-100])
     # print(Rx())
     

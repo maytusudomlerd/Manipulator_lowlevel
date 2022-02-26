@@ -58,11 +58,6 @@
 #define J3_OFFSETTOHOMECONFIGURATION 0
 #define J4_OFFSETTOHOMECONFIGURATION 6548
 
-#define J1_WORKSPACE 3436
-#define J2_WORKSPACE 97000
-#define J3_WORKSPACE 42000
-#define J4_WORKSPACE 13096
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -84,15 +79,12 @@ int32_t chessboardpos;
 
 float target_position[4] = { 0 };
 double jointstate[4]; //real time value from encoder
-int32_t setpoint[4];   //target point in encoder unit(pulse)
+double setpoint[4];   //target point in encoder unit(pulse)
 double taskconfig[4] = {0};  //now position in task space
 double jointconfig[4] = {0}; //now position in configuration space
-double jointconfig_t[4] = {0};
 double tasksetpoint[4]; //target point in task space
 double jointsetpoint[4]; //target point in configuration space
 
-float jointworkspace[4] = {J1_WORKSPACE,J2_WORKSPACE,J3_WORKSPACE,J4_WORKSPACE};
-uint16_t motor_max_frequency[4] = {JOINT1_MAX_FREQUENCY,JOINT2_MAX_FREQUENCY,JOINT3_MAX_FREQUENCY,JOINT4_MAX_FREQUENCY};
 uint32_t radtopulse[4] = {JOINT1_RADTOPULSE,JOINT2_RADTOPULSE,JOINT3_MMTOPULSE,JOINT4_RADTOPULSE};
 uint8_t joint = 0;
 
@@ -100,6 +92,8 @@ uint32_t timestamp = 0;
 Controller position_jointcontroller[4];
 Controller velocity_jointcontroller[4];
 Kalmanfilter kalmanjoint[4];
+
+uint8_t control_flag = 1v;
 
 uint8_t Proximity_state[4];
 
@@ -111,7 +105,6 @@ uint8_t Proximity_state[4];
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void mhainw_robot_sethome();
-float map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -131,8 +124,7 @@ int main(void)
 
   /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -217,25 +209,23 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  if(control_flag ==1 ){
+		  if(HAL_GetTick() - timestamp >= 1){
+			timestamp = HAL_GetTick();
 
-	  if(HAL_GetTick() - timestamp >= 1){
-		timestamp = HAL_GetTick();
-
-		for(joint = 0;joint <4;joint++){
-			//read encoder
-			jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
-			//convert pulse to rad
-			jointconfig[joint] =  jointstate[joint] / radtopulse[joint];
-			// PID output
-			mhainw_control_controllerupdate(&position_jointcontroller[joint], setpoint[joint], jointstate[joint]);
-			//map PID output to motor frequency range
-			position_jointcontroller[joint].output = map(position_jointcontroller[joint].output, 0,
-					jointworkspace[joint], ALLJOINT_MIN_FREQUENCY, motor_max_frequency[joint]);
-			//drive motor
-			mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
-		}
-	}
-
+			for(joint = 0;joint <4;joint++){
+				//read encoder
+				jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
+				//convert pulse to rad
+				jointconfig[joint] =  jointstate[joint] / radtopulse[joint];
+				jointsetpoint[joint] = setpoint[joint] / radtopulse[joint];
+				// PID output
+				mhainw_control_controllerupdate(&position_jointcontroller[joint], setpoint[joint], jointstate[joint]);
+				//drive motor
+				mhainw_stepper_setspeed_map(&motors[joint], position_jointcontroller[joint].output);
+			}
+		  }
+	  }
   }
   /* USER CODE END 3 */
 }
@@ -356,12 +346,13 @@ void mhainw_robot_sethome(){
 	setpoint[2] = J3_OFFSETTOHOMECONFIGURATION;
 	jointstate[3] = J4_OFFSETTOHOMECONFIGURATION;
 	setpoint[3] = J4_OFFSETTOHOMECONFIGURATION;
+	jointsetpoint[0] = setpoint[0] / radtopulse[0];
+	jointsetpoint[1] = setpoint[1] / radtopulse[1];
+	jointsetpoint[2] = setpoint[2] / radtopulse[2];
+	jointsetpoint[3] = setpoint[3] / radtopulse[3];
 }
 
-float map(int32_t x, int32_t in_min, int32_t in_max, int32_t out_min, int32_t out_max)
-{
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
+
 
 /* USER CODE END 4 */
 

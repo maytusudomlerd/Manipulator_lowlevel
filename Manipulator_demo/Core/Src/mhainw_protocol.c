@@ -237,7 +237,7 @@ void UARTsentACK(Protocol *uart,uint8_t ack){
 	uint8_t temp[] = { 0xFF, 0x02 , ack};
 	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
 }
-void jogcatesian(Protocol *uart,int32_t *setpoint){
+void jogcatesian(Protocol *uart,double *setpoint){
 	uint8_t axis = uart->data[0];
 	double step = uart->data[1];
 	double movingstep[4] = {0}; //{ Rz X Y Z}
@@ -253,10 +253,10 @@ void jogcatesian(Protocol *uart,int32_t *setpoint){
 		movingstep[0] = step * DEGTORAD;
 	}
 
-	IVK(jointconfig,movingstep,dq);
+	IVK(jointsetpoint,movingstep,dq);
 
 	for(int i=0;i<4;i++){
-		jointsetpoint[i] = jointconfig[i] + dq[i];
+		jointsetpoint[i] += dq[i];
 	}
 
 	setpoint[0] = jointsetpoint[0] * JOINT1_RADTOPULSE;
@@ -266,7 +266,7 @@ void jogcatesian(Protocol *uart,int32_t *setpoint){
 
 }
 
-void jogjoint(Protocol *uart,int32_t *setpoint){
+void jogjoint(Protocol *uart,double *setpoint){
 	uint8_t axis = uart->data[0];
 
 	if(axis == 8){
