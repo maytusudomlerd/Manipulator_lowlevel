@@ -54,7 +54,7 @@
 #define JOINT2_RADTOPULSE            17940.0
 #define JOINT4_RADTOPULSE            5216.0
 
-#define DEGTORAD                     0.01745
+#define DEGTORAD                     0.0174532925
 
 typedef enum{
 	idle,
@@ -76,6 +76,8 @@ typedef struct{
 	uint8_t checksum;
 	uint8_t cal_checksum;
 	uint8_t havedata;
+	uint8_t goal_reach[4];
+	uint8_t package_verify;
 }Protocol;
 
 void mhainw_protocol_init(Protocol *uart,UART_HandleTypeDef *handle);
@@ -88,7 +90,7 @@ void UARTsentERR(Protocol *uart,uint8_t errtype);
 void UARTsentACK(Protocol *uart,uint8_t ack);
 void UARTsendit(Protocol *uart);
 
-void jogcatesian(Protocol *uart,double *setpoint);
-void jogjoint(Protocol *uart,double *setpoint);
+void jogcatesian(Protocol *uart,float *jointsetpoint);
+void jogjoint(Protocol *uart,float *jointsetpoint);
 
 #endif /* INC_MHAINW_PROTOCOL_H_ */

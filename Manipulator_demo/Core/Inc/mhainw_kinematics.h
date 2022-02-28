@@ -11,9 +11,9 @@
 #include "math.h"
 #include "string.h"
 
-void FPK(double *q,double *taskconfig);
-void IPK(double *X, double gramma, double *jointconfig);
-void IVK(double *q, double *dX, double *dq);
+void FPK(float *q,float *taskconfig);
+void IPK(float *X, float gramma, float *jointconfig);
+void IVK(float *q, float *dX, float *dq);
 
 
 #endif /* INC_MHAINW_KINEMATICS_H_ */

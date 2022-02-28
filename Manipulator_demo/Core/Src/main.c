@@ -45,8 +45,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define PI 3.1415926
-#define kalman_Q 1
-#define kalman_R 1
+#define kalman_Q 5000
+#define kalman_R 0.01
 
 #define J1_ENCODERRESOLUTION 8192
 #define J2_ENCODERRESOLUTION 112721.92
@@ -78,14 +78,16 @@ Encoder chessboardenc;
 int32_t chessboardpos;
 
 float target_position[4] = { 0 };
-double jointstate[4]; //real time value from encoder
-double setpoint[4];   //target point in encoder unit(pulse)
-double taskconfig[4] = {0};  //now position in task space
-double jointconfig[4] = {0}; //now position in configuration space
-double tasksetpoint[4]; //target point in task space
-double jointsetpoint[4]; //target point in configuration space
+float jointstate[4]; //real time value from encoder
+float setpoint[4];   //target point in encoder unit(pulse)
+float taskconfig[4] = {0};  //now position in task space
+float jointconfig[4] = {0}; //now position in configuration space
+float tasksetpoint[4]; //target point in task space
+float jointsetpoint[4]; //target point in configuration space
 
-uint32_t radtopulse[4] = {JOINT1_RADTOPULSE,JOINT2_RADTOPULSE,JOINT3_MMTOPULSE,JOINT4_RADTOPULSE};
+float temp;
+
+float radtopulse[4] = {JOINT1_RADTOPULSE,JOINT2_RADTOPULSE,JOINT3_MMTOPULSE,JOINT4_RADTOPULSE};
 uint8_t joint = 0;
 
 uint32_t timestamp = 0;
@@ -93,7 +95,7 @@ Controller position_jointcontroller[4];
 Controller velocity_jointcontroller[4];
 Kalmanfilter kalmanjoint[4];
 
-uint8_t control_flag = 1v;
+uint8_t control_flag = 1;
 
 uint8_t Proximity_state[4];
 
@@ -105,6 +107,9 @@ uint8_t Proximity_state[4];
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void mhainw_robot_sethome();
+void mhainw_command_statemachine(Protocol *uart);
+void jogcatesian(Protocol *uart,float *jointsetpoint);
+void jogjoint(Protocol *uart,float *jointsetpoint);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -170,10 +175,10 @@ int main(void)
   mhainw_amt10_init(&encoders[3], &htim4);
   mhainw_amt10_init(&chessboardenc, &htim8);
 
-  mhainw_control_init(&position_jointcontroller[0],5,1,0);
-  mhainw_control_init(&position_jointcontroller[1],7,1,0);
-  mhainw_control_init(&position_jointcontroller[2],3.5,0,0);
-  mhainw_control_init(&position_jointcontroller[3],3,0,0);
+  mhainw_control_init(&position_jointcontroller[0],500,0.05,0);
+  mhainw_control_init(&position_jointcontroller[1],2000,0.5,0);
+  mhainw_control_init(&position_jointcontroller[2],100,0.9,0);
+  mhainw_control_init(&position_jointcontroller[3],500,0.5,0);
 
   mhainw_control_init(&velocity_jointcontroller[0],3,0,0);
   mhainw_control_init(&velocity_jointcontroller[1],3,0,0);
@@ -181,7 +186,7 @@ int main(void)
   mhainw_control_init(&velocity_jointcontroller[3],3,0,0);
 
   mhainw_kalmanfilter_init(&kalmanjoint[0],0,0,0,0,0,0,kalman_Q,kalman_R);
-  mhainw_kalmanfilter_init(&kalmanjoint[1],0,0,0,0,0,0,kalman_Q,kalman_R);
+  mhainw_kalmanfilter_init(&kalmanjoint[1],0,0,0,0,0,0,5000,0.01);
   mhainw_kalmanfilter_init(&kalmanjoint[2],0,0,0,0,0,0,kalman_Q,kalman_R);
   mhainw_kalmanfilter_init(&kalmanjoint[3],0,0,0,0,0,0,kalman_Q,kalman_R);
 
@@ -191,18 +196,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 
   mhainw_robot_sethome();
-//  double dX[4] = {0,0,0,-10};
-//  jointconfig_t[0] = 0.7;
-//  jointconfig_t[1] = 3.14/2;
-//  jointconfig_t[2] = 14;
-//  jointconfig_t[3] = -0.7;
-//  FPK(jointconfig_t,taskconfig);
-//  IVK(jointconfig_t,dX,dq);
-//  jointsetpoint[0] = dq[0] + jointconfig_t[0];
-//  jointsetpoint[1] = dq[1] + jointconfig_t[1];
-//  jointsetpoint[2] = dq[2] + jointconfig_t[2];
-//  jointsetpoint[3] = dq[3] + jointconfig_t[3];
-//  FPK(jointsetpoint,tasksetpoint);
 
   while (1)
   {
@@ -218,13 +211,24 @@ int main(void)
 				jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
 				//convert pulse to rad
 				jointconfig[joint] =  jointstate[joint] / radtopulse[joint];
-				jointsetpoint[joint] = setpoint[joint] / radtopulse[joint];
+				//kalman filter
+				mhainw_kalmanfilter_updatekalman(&kalmanjoint[joint],jointconfig[joint]);
 				// PID output
-				mhainw_control_controllerupdate(&position_jointcontroller[joint], setpoint[joint], jointstate[joint]);
+				//position control
+				mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsetpoint[joint], jointconfig[joint]);
+				// velocity control
+//				mhainw_control_controllerupdate(&velocity_jointcontroller[joint], position_jointcontroller[joint].output, kalmanjoint[joint].x2);
 				//drive motor
-				mhainw_stepper_setspeed_map(&motors[joint], position_jointcontroller[joint].output);
+				mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
+
+				if(jointconfig[joint] == jointsetpoint[joint]){
+					user.goal_reach[joint] = 1;
+				}
 			}
 		  }
+	  }
+	  if(user.package_verify){
+		  mhainw_command_statemachine(&user);
 	  }
   }
   /* USER CODE END 3 */
@@ -290,6 +294,7 @@ void SystemClock_Config(void)
 /* USER CODE BEGIN 4 */
 void mhainw_robot_sethome(){
 	uint8_t sethome[3] = {0};
+	float jointoffset[4] = {J1_OFFSETTOHOMECONFIGURATION,J2_OFFSETTOHOMECONFIGURATION,J3_OFFSETTOHOMECONFIGURATION,J4_OFFSETTOHOMECONFIGURATION};
 
 	//offset
 	mhainw_stepper_setspeed(&motors[0], -100);
@@ -338,20 +343,96 @@ void mhainw_robot_sethome(){
 	htim2.Instance->CNT = 0;
 	htim3.Instance->CNT = 0;
 	htim4.Instance->CNT = 0;
-	jointstate[0] = J1_OFFSETTOHOMECONFIGURATION;
-	setpoint[0] = J1_OFFSETTOHOMECONFIGURATION;
-	jointstate[1] = J2_OFFSETTOHOMECONFIGURATION;
-	setpoint[1] = J2_OFFSETTOHOMECONFIGURATION;
-	jointstate[2] = J3_OFFSETTOHOMECONFIGURATION;
-	setpoint[2] = J3_OFFSETTOHOMECONFIGURATION;
-	jointstate[3] = J4_OFFSETTOHOMECONFIGURATION;
-	setpoint[3] = J4_OFFSETTOHOMECONFIGURATION;
-	jointsetpoint[0] = setpoint[0] / radtopulse[0];
-	jointsetpoint[1] = setpoint[1] / radtopulse[1];
-	jointsetpoint[2] = setpoint[2] / radtopulse[2];
-	jointsetpoint[3] = setpoint[3] / radtopulse[3];
+
+	for(int i =0;i<4;i++){
+		jointstate[i] = jointoffset[i];
+		jointconfig[i] = jointstate[i] / radtopulse[i];
+		jointsetpoint[i] = jointconfig[i];
+	}
 }
 
+void mhainw_command_statemachine(Protocol *uart){
+	static uint8_t set = 0;
+	switch(uart->inst){
+		case MHAINW_SETHOME:
+			UARTsentACK(uart, MHAINW_SETHOME_ACK);
+			break;
+		case MHAINW_JOG_CATESIAN:
+			UARTsentACK(uart, MHAINW_JOG_ACK);
+			jogcatesian(uart,jointsetpoint);
+			uart->package_verify = 0;
+			break;
+		case MHAINW_JOG_JOINT:
+			if(set == 0){
+				UARTsentACK(uart, MHAINW_JOG_ACK);
+				jogjoint(uart,jointsetpoint);
+				set = 1;
+			}
+			if(uart->goal_reach[0] == 1 && uart->goal_reach[1] == 1 && uart->goal_reach[2] == 1 && uart->goal_reach[3] == 1){
+				UARTsentACK(uart, MHAINW_JOG_ACK);
+				uart->package_verify = 0;
+				set = 0;
+			}
+			break;
+		case MAHINW_MOVE_CATESIAN :
+			if(set == 0){
+				UARTsentACK(uart, MHAINW_JOG_ACK);
+				jogcatesian(uart,jointsetpoint);
+				set = 1;
+			}
+			if(uart->goal_reach[0] == 1 && uart->goal_reach[1] == 1 && uart->goal_reach[2] == 1 && uart->goal_reach[3] == 1){
+				UARTsentACK(uart, MHAINW_JOG_ACK);
+				uart->package_verify = 0;
+				set = 0;
+			}
+			break;
+		case MHAINW_MOVE_JOINT:
+			UARTsentACK(uart, MHAINW_MOVE_ACK);
+			break;
+		case MHAINW_MOVE_TASK:
+			UARTsentACK(uart, MHAINW_TASKMOVE_ACK);
+			break;
+	  }
+}
+
+void jogcatesian(Protocol *uart,float *jointsetpoint){
+	uint8_t axis = uart->data[0];
+	float step = uart->data[1];
+	float movingstep[4] = {0}; //{ Rz X Y Z}
+	float dq[4] = {0};
+
+	if(axis == 8){ //x
+		movingstep[1] = step;
+	} else if(axis == 4){ //y
+		movingstep[2] = step;
+	} else if(axis == 2){ //z
+		movingstep[3] = step;
+	} else if(axis == 1){  //rz
+		movingstep[0] = step * DEGTORAD;
+	}
+
+	IVK(jointsetpoint,movingstep,dq);
+
+	for(int i=0;i<4;i++){
+		jointsetpoint[i] += dq[i];
+	}
+}
+
+void jogjoint(Protocol *uart,float *jointsetpoint){
+	uint8_t axis = uart->data[0];
+	float step = (float)(uart->data[1]) * DEGTORAD;
+
+	if(axis == 8){
+		jointsetpoint[0] += step;
+	} else if(axis == 4){
+		jointsetpoint[1] += step;
+	} else if(axis == 2){
+		jointsetpoint[2] += uart->data[1];
+	} else if(axis == 1){
+		jointsetpoint[3] += step;
+	}
+
+}
 
 
 /* USER CODE END 4 */

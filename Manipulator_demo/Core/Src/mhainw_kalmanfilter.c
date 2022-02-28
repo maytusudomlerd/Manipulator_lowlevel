@@ -6,6 +6,8 @@
  */
 #include "mhainw_kalmanfilter.h"
 
+#define kalman_tuning
+
 void mhainw_kalmanfilter_init(Kalmanfilter *kalman,float x1,float x2,float p11,float p12,float p21,float p22,float Q,float R){
 	kalman->x1 = x1;
 	kalman->x2 = x2;
@@ -15,6 +17,10 @@ void mhainw_kalmanfilter_init(Kalmanfilter *kalman,float x1,float x2,float p11,f
 	kalman->p21 = p21;
 	kalman->p22 = p22;
 
+#ifdef kalman_tuning
+	kalman->detP = (p11 * p22) - (p12 * p21);
+#endif
+
 	kalman->Q = Q;
 	kalman->R = R;
 }
@@ -23,7 +29,7 @@ void mhainw_kalmanfilter_init(Kalmanfilter *kalman,float x1,float x2,float p11,f
  * second is theta(radent) that value are read form encoder
  *
  */
-void mhainw_kalmanfilter_kalmanupdate(Kalmanfilter *kalman,float theta){
+void mhainw_kalmanfilter_updatekalman(Kalmanfilter *kalman,float theta){
 	float x1 = (kalman->x1);
 	float x2 = (kalman->x2);
 	float p11 = (kalman->p11);
@@ -42,5 +48,9 @@ void mhainw_kalmanfilter_kalmanupdate(Kalmanfilter *kalman,float theta){
 	kalman->p12 = (2*R*(Q*dt_pow3 + 2*p22*dt + 2*p12))/(4*R + 4*p11 + 4*dt*p12 + 4*dt*p21 + Q*dt_pow4 + 4*dt_pow2*p22);
 	kalman->p21 = (2*R*(Q*dt_pow3 + 2*p22*dt + 2*p21))/(4*R + 4*p11 + 4*dt*p12 + 4*dt*p21 + Q*dt_pow4 + 4*dt_pow2*p22);
 	kalman->p22 = p22 + Q*dt_pow2 - (((Q*dt_pow3)/2 + p22*dt + p12)*((Q*dt_pow3)/2 + p22*dt + p21))/(R + p11 + dt*p21 + (Q*dt_pow4)/4 + dt*(p12 + dt*p22));
+
+#ifdef kalman_tuning
+	kalman->detP = (p11 * p22) - (p12 * p21);
+#endif
 }
 

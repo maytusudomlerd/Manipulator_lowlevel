@@ -8,12 +8,6 @@
 #include "mhainw_protocol.h"
 #include "usart.h"
 
-extern uint32_t setpoint[4];
-extern double tasksetpoint[4];
-extern double jointsetpoint[4];
-extern double jointconfig[4];
-extern double taskconfig[4];
-
 void mhainw_protocol_init(Protocol *uart,UART_HandleTypeDef *handle){
 	/*
 	 *
@@ -24,6 +18,11 @@ void mhainw_protocol_init(Protocol *uart,UART_HandleTypeDef *handle){
 
 	uart->havedata = 0;
 	uart->Rxtail = 0;
+
+	uart->goal_reach[0] = 0;
+	uart->goal_reach[1] = 0;
+	uart->goal_reach[2] = 0;
+	uart->goal_reach[3] = 0;
 
 	HAL_UART_Receive_IT(uart->handleuart, &uart->Rxbuffer[uart->Rxtail] , 1);
 }
@@ -90,52 +89,11 @@ void mhainw_protocol_state(Protocol *uart){
 
 				// checksum successful
 				if(uart->cal_checksum == uart->checksum){
-					switch(uart->inst){
-					case MHAINW_SETHOME:
-						UARTsentACK(uart, MHAINW_SETHOME_ACK);
-						break;
-					case MHAINW_JOG_CATESIAN:
-						jogcatesian(uart,&setpoint);
-						UARTsentACK(uart, MHAINW_JOG_ACK);
-						break;
-					case MHAINW_JOG_JOINT:
-						jogjoint(uart,&setpoint);
-						UARTsentACK(uart, MHAINW_JOG_ACK);
-						break;
-					case MAHINW_MOVE_CATESIAN :
-						UARTsentACK(uart, MHAINW_MOVE_ACK);
-						break;
-					case MHAINW_MOVE_JOINT:
-						UARTsentACK(uart, MHAINW_MOVE_ACK);
-						break;
-					case MHAINW_MOVE_TASK:
-						UARTsentACK(uart, MHAINW_TASKMOVE_ACK);
-						break;
-					case MHAINW_GRIPPER:
-						UARTsentACK(uart, MHAINW_GRIPPER_ACK);
-						break;
-					case MHAINW_GRIPPER_READCURRENT:
-						UARTsentACK(uart, MHAINW_GRIPPER_ACK);
-						break;
-					case MHAINW_GRIPPER_SETCURRENT:
-						UARTsentACK(uart, MHAINW_GRIPPER_ACK);
-						break;
-					case MHAINW_UNIT_ENCODER:
-						UARTsentACK(uart, MHAINW_UNIT_ACK);
-						break;
-					case MHAINW_UNIT_MOTOR:
-						UARTsentACK(uart, MHAINW_UNIT_ACK);
-						break;
-					case MHAINW_UINT_PROX:
-						UARTsentACK(uart, MHAINW_UNIT_ACK);
-						break;
-					}
+					uart->package_verify = 1;
 				}
 				else{
 					UARTsentERR(uart,MHAINW_CHECKSUM_ERR);
-
 				}
-
 				state = idle;
 				collectdata = 0;
 				break;
@@ -236,49 +194,6 @@ void UARTsentACK(Protocol *uart,uint8_t ack){
 	 * */
 	uint8_t temp[] = { 0xFF, 0x02 , ack};
 	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
-}
-void jogcatesian(Protocol *uart,double *setpoint){
-	uint8_t axis = uart->data[0];
-	double step = uart->data[1];
-	double movingstep[4] = {0}; //{ Rz X Y Z}
-	double dq[4] = {0};
-
-	if(axis == 8){ //x
-		movingstep[1] = step;
-	} else if(axis == 4){ //y
-		movingstep[2] = step;
-	} else if(axis == 2){ //z
-		movingstep[3] = step;
-	} else if(axis == 1){  //rz
-		movingstep[0] = step * DEGTORAD;
-	}
-
-	IVK(jointsetpoint,movingstep,dq);
-
-	for(int i=0;i<4;i++){
-		jointsetpoint[i] += dq[i];
-	}
-
-	setpoint[0] = jointsetpoint[0] * JOINT1_RADTOPULSE;
-	setpoint[1] = jointsetpoint[1] * JOINT2_RADTOPULSE;
-	setpoint[2] = jointsetpoint[2] * JOINT3_MMTOPULSE;
-	setpoint[3] = jointsetpoint[3] * JOINT4_RADTOPULSE;
-
-}
-
-void jogjoint(Protocol *uart,double *setpoint){
-	uint8_t axis = uart->data[0];
-
-	if(axis == 8){
-		setpoint[0] += uart->data[1] * JOINT1_DEGTOPULSE;
-	} else if(axis == 4){
-		setpoint[1] += uart->data[1] * JOINT2_DEGTOPULSE;
-	} else if(axis == 2){
-		setpoint[2] += uart->data[1] * JOINT3_MMTOPULSE;
-	} else if(axis == 1){
-		setpoint[3] += uart->data[1] * JOINT4_DEGTOPULSE;
-	}
-
 }
 
 

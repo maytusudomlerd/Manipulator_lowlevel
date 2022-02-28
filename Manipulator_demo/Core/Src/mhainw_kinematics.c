@@ -6,11 +6,11 @@
  */
 #include "mhainw_kinematics.h"
 
-void FPK(double *q,double *taskconfig){
-	double eulShaped_idx_2;
-	double p_tmp;
-	double p_tmp_tmp;
-	double p_tmp_tmp_tmp;
+void FPK(float *q,float *taskconfig){
+	float eulShaped_idx_2;
+	float p_tmp;
+	float p_tmp_tmp;
+	float p_tmp_tmp_tmp;
 	p_tmp_tmp_tmp = q[0] + q[1];
 	p_tmp_tmp = p_tmp_tmp_tmp + q[3];
 	p_tmp = sin(p_tmp_tmp);
@@ -25,14 +25,14 @@ void FPK(double *q,double *taskconfig){
 	taskconfig[3] = 224.95 - q[2];
 	//memcpy(taskconfig,X,strlen(X)+1);
 }
-void IPK(double *X, double gramma, double *jointconfig)
+void IPK(float *X, float gramma, float *jointconfig)
 {
-  double b_c[9];
-  double p_0w[3];
-  double c;
-  double q1;
-  double s;
-  double s2;
+  float b_c[9];
+  float p_0w[3];
+  float c;
+  float q1;
+  float s;
+  float s2;
   int i;
   c = cos(X[0]);
   s = sin(X[0]);
@@ -66,16 +66,15 @@ void IPK(double *X, double gramma, double *jointconfig)
  *  *dX is pointer that point to step position in task space
  *  *dq is point that point to variable that keep result of IVK
  */
-void IVK(double *q, double *dX, double *dq)
+void IVK(float *q, float *dX, float *dq)
 {
-  double b_dq_tmp;
-  double c_dq_tmp;
-  double d_dq_tmp;
-  double dq_tmp;
-  double dq_tmp_tmp;
-  double e_dq_tmp;
-  double f_dq_tmp;
-  double Dq[4] = {0};
+  float b_dq_tmp;
+  float c_dq_tmp;
+  float d_dq_tmp;
+  float dq_tmp;
+  float dq_tmp_tmp;
+  float e_dq_tmp;
+  float f_dq_tmp;
   dq_tmp_tmp = q[0] + q[1];
   dq_tmp = cos(dq_tmp_tmp);
   dq_tmp_tmp = sin(dq_tmp_tmp);
