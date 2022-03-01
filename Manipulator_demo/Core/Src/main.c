@@ -34,6 +34,7 @@
 #include "mhainw_control.h"
 #include "mhainw_kinematics.h"
 #include "mhainw_kalmanfilter.h"
+#include "mhainw_trajectory.h"
 
 /* USER CODE END Includes */
 
@@ -94,6 +95,8 @@ uint32_t timestamp = 0;
 Controller position_jointcontroller[4];
 Controller velocity_jointcontroller[4];
 Kalmanfilter kalmanjoint[4];
+Trajectory quinticTrajectory[4];
+Trajectory traj;
 
 uint8_t control_flag = 1;
 
@@ -190,6 +193,13 @@ int main(void)
   mhainw_kalmanfilter_init(&kalmanjoint[2],0,0,0,0,0,0,kalman_Q,kalman_R);
   mhainw_kalmanfilter_init(&kalmanjoint[3],0,0,0,0,0,0,kalman_Q,kalman_R);
 
+  mhainw_trajectory_init(&quinticTrajectory[0],0.001);
+  mhainw_trajectory_init(&quinticTrajectory[1],0.001);
+  mhainw_trajectory_init(&quinticTrajectory[2],0.001);
+  mhainw_trajectory_init(&quinticTrajectory[3],0.001);
+
+  mhainw_trajectory_init(&traj,0.001);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -197,30 +207,44 @@ int main(void)
 
   mhainw_robot_sethome();
 
+  mhainw_trajectory_generatetraj(&traj,1,3,10,0,0,0,0);
+  traj.initial_time = HAL_GetTick();
+
+
+
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
 	  if(control_flag ==1 ){
 		  if(HAL_GetTick() - timestamp >= 1){
 			timestamp = HAL_GetTick();
 
 			for(joint = 0;joint <4;joint++){
+
 				//read encoder
 				jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
 				//convert pulse to rad
 				jointconfig[joint] =  jointstate[joint] / radtopulse[joint];
-				//kalman filter
 				mhainw_kalmanfilter_updatekalman(&kalmanjoint[joint],jointconfig[joint]);
-				// PID output
-				//position control
-				mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsetpoint[joint], jointconfig[joint]);
-				// velocity control
-//				mhainw_control_controllerupdate(&velocity_jointcontroller[joint], position_jointcontroller[joint].output, kalmanjoint[joint].x2);
-				//drive motor
-				mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
 
+				if(quinticTrajectory[joint].havetraj == 1){
+					quinticTrajectory[joint].t = (HAL_GetTick() - quinticTrajectory[joint].initial_time) / 1000;
+					if(quinticTrajectory[joint].t <= quinticTrajectory[joint].Tk){
+						mhainw_trajectory_updatetraj(&quinticTrajectory[joint]); // q da ddq viapoint
+						jointsetpoint[joint] = quinticTrajectory[joint].q;
+					}
+					else{
+						quinticTrajectory[joint].havetraj = 0;
+//						jointsetpoint[joint] = jointconfig[joint];
+					}
+				}
+				mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsetpoint[joint], jointconfig[joint]);
+//					mhainw_control_controllerupdate(&velocity_jointcontroller[joint], position_jointcontroller[joint].output, kalmanjoint[joint].x2);
+				mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
 				if(jointconfig[joint] == jointsetpoint[joint]){
 					user.goal_reach[joint] = 1;
 				}
@@ -358,9 +382,26 @@ void mhainw_command_statemachine(Protocol *uart){
 			UARTsentACK(uart, MHAINW_SETHOME_ACK);
 			break;
 		case MHAINW_JOG_CATESIAN:
-			UARTsentACK(uart, MHAINW_JOG_ACK);
-			jogcatesian(uart,jointsetpoint);
-			uart->package_verify = 0;
+			if(set == 0){
+				UARTsentACK(uart, MHAINW_JOG_ACK);
+				jogcatesian(uart,jointsetpoint);
+				for(int i=0;i<4;i++){
+					mhainw_trajectory_generatetraj(&quinticTrajectory[i],1,jointconfig[i],jointsetpoint[i],0,0,0,0);
+					quinticTrajectory[i].initial_time = HAL_GetTick();
+					//cal Tk
+					quinticTrajectory[i].havetraj = 1;
+				}
+				set = 1;
+			}
+			if(uart->goal_reach[0] == 1 && uart->goal_reach[1] == 1 && uart->goal_reach[2] == 1 && uart->goal_reach[3] == 1){
+				UARTsentACK(uart, MHAINW_JOG_ACK);
+				uart->goal_reach[0] = 0;
+				uart->goal_reach[1] = 0;
+				uart->goal_reach[2] = 0;
+				uart->goal_reach[3] = 0;
+				uart->package_verify = 0;
+				set = 0;
+			}
 			break;
 		case MHAINW_JOG_JOINT:
 			if(set == 0){
@@ -375,16 +416,6 @@ void mhainw_command_statemachine(Protocol *uart){
 			}
 			break;
 		case MAHINW_MOVE_CATESIAN :
-			if(set == 0){
-				UARTsentACK(uart, MHAINW_JOG_ACK);
-				jogcatesian(uart,jointsetpoint);
-				set = 1;
-			}
-			if(uart->goal_reach[0] == 1 && uart->goal_reach[1] == 1 && uart->goal_reach[2] == 1 && uart->goal_reach[3] == 1){
-				UARTsentACK(uart, MHAINW_JOG_ACK);
-				uart->package_verify = 0;
-				set = 0;
-			}
 			break;
 		case MHAINW_MOVE_JOINT:
 			UARTsentACK(uart, MHAINW_MOVE_ACK);
