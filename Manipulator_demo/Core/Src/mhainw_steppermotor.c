@@ -64,10 +64,6 @@ void mhainw_stepper_setspeed(Stepper_motor *motor,float freq){
 
 void mhainw_stepper_setpwm(Stepper_motor *motor,float freq,float duty_cycle){
 
-//	if(freq > MAX_FREQUENCY) {
-//		freq = MAX_FREQUENCY;
-//	}
-//
 	if(motor->timHandle == &htim13){
 		if(freq > JOINT1_MAX_FREQUENCY){
 			freq = JOINT1_MAX_FREQUENCY;

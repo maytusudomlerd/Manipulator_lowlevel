@@ -1,6 +1,6 @@
 import serial
 
-ser = serial.Serial('/dev/tty.usbmodem1424203', 256000, timeout=1)
+ser = serial.Serial('/dev/tty.usbmodem1424103', 256000, timeout=1)
 
 def checksum(data):
     return ~(sum(data)) & 0xff
@@ -15,7 +15,7 @@ def Rx():
             return 1
         if instuction == 0xA2:
             # CRC Calculation error
-            return 2
+            return Rx_buf
         if instuction == 0xA3:
             # Acknowledge
             return 3
@@ -94,10 +94,10 @@ move the robot
     position = list of position 1. input are catesian position {x(mm), y(mm), z(mm), rz(mm)}
                                 2. input type are joint configuration {j1(deg), j2(deg), j3(mm), j4(deg)}
 """
-def tx_move(position=[0,0,0,0], ref='home',type='c'):
-    if(ref == 'home'):
+def tx_move(position=[0,0,0,0], ref='home',type='j'):
+    if(type == 'c'):
         tx_buff = [0xff,0x00,0x30]
-    elif(ref == 'current'):
+    elif(type == 'j'):
         tx_buff = [0xff,0x00,0x31]
     
     style = 0b00000000
@@ -122,12 +122,13 @@ def tx_move(position=[0,0,0,0], ref='home',type='c'):
     if ser.is_open:
         ser.write(tx_buff)
 
-
 if __name__ == "__main__":
     # tx_sethome()
-    tx_jog(axis='j1', step=-10 , type='j')
-    # tx_jog(axis='rz', step=15, type='c')
-    # tx_move(ref='home',type='j',position=[100,-100,100,-100])
+    # tx_jog(axis='j1', step=-15 , type='j')
+    # tx_jog(axis='x', step=10, type='c')
+    # print(Rx())
+    # tx_move(ref='current',type='j',position=[0,-30,-70,0])
+    # tx_move(ref='home',type='j',position=[30,-60,100,0])
 
 
 
