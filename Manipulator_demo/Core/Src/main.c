@@ -131,6 +131,7 @@ void mhainw_command_statemachine(Protocol *uart);
 void jogcatesian(Protocol *uart,float *jointsetpoint);
 void jogjoint(Protocol *uart,float *jointsetpoint);
 void movejoint(Protocol *uart,float *jointsetpoint);
+void movecatesian(Protocol *uart,float *jointsetpoint);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -465,6 +466,22 @@ void mhainw_command_statemachine(Protocol *uart){
 			}
 			break;
 		case MAHINW_MOVE_CATESIAN :
+			if(set == 0){
+				UARTsentACK(uart,MHAINW_MOVE_ACK);
+				movecatesian(uart,jointsetpoint);
+				//init trajectory
+				for(int i=0;i<=4;i++){
+					mhainw_trajectory_generatetraj(&quinticTrajectory[i],2,jointconfig[i],jointsetpoint[i],0,0,0,0);
+					quinticTrajectory[i].initial_time = HAL_GetTick();
+					quinticTrajectory[i].havetraj = 1;
+				}
+				set = 1;
+			}
+			if(uart->goal_reach[0] == 1 && uart->goal_reach[1] == 1 && uart->goal_reach[2] == 1 && uart->goal_reach[3] == 1){
+				UARTsentACK(uart, MHAINW_MOVE_ACK);
+				uart->package_verify = 0;
+				set = 0;
+			}
 			break;
 		case MHAINW_MOVE_JOINT:
 			if(set == 0){
@@ -482,7 +499,6 @@ void mhainw_command_statemachine(Protocol *uart){
 				uart->package_verify = 0;
 				set = 0;
 			}
-			uart->package_verify = 0;
 			break;
 		case MHAINW_MOVE_TASK:
 			UARTsentACK(uart, MHAINW_TASKMOVE_ACK);
@@ -541,6 +557,22 @@ void movejoint(Protocol *uart,float *jointsetpoint){
 		jointsetpoint[1] = (int16_t)((uart->data[3] << 8) | (uint8_t)uart->data[4]) * DEGTORAD;
 		jointsetpoint[2] = -1.0 * (int16_t)((uart->data[5] << 8) | (uint8_t)uart->data[6]);
 		jointsetpoint[3] = (int16_t)((uart->data[7] << 8) | (uint8_t)uart->data[8]) * DEGTORAD;
+	}
+}
+void movecatesian(Protocol *uart,float *jointsetpoint){
+	float taskspace_setpoint[4] = {0};
+	float temp_jointsetpoint[4] = {0};
+	float temp_taskconfig[4] = {0};
+	float temp_jointconfig[4] = {jointsetpoint[0],jointsetpoint[1],jointsetpoint[2],jointsetpoint[3]};
+	FPK(temp_jointconfig,temp_taskconfig);
+	taskspace_setpoint[1] = temp_taskconfig[1] + (int16_t)((uart->data[1] << 8) | (uint8_t)uart->data[2]);
+	taskspace_setpoint[2] = temp_taskconfig[2] + (int16_t)((uart->data[3] << 8) | (uint8_t)uart->data[4]);
+	taskspace_setpoint[3] = temp_taskconfig[3] + (int16_t)((uart->data[5] << 8) | (uint8_t)uart->data[6]);
+	taskspace_setpoint[0] = temp_taskconfig[0] + (int16_t)((uart->data[7] << 8) | (uint8_t)uart->data[8]);
+	IPK(taskspace_setpoint,-1,temp_jointsetpoint);
+
+	for(int i=0;i<4;i++){
+		jointsetpoint[i] = temp_jointsetpoint[i];
 	}
 }
 
