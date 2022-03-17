@@ -49,13 +49,21 @@
 #define kalman_Q 5000
 #define kalman_R 0.01
 
-#define J1_ENCODERRESOLUTION 8192
-#define J2_ENCODERRESOLUTION 112721.92
-#define J3_ENCODERRESOLUTION 8192
-#define J4_ENCODERRESOLUTION 8192
+#define PULSEPERROUND 8192
+
+#define JOINT1_DEGTOPULSE            PULSEPERROUND / 360
+#define JOINT2_DEGTOPULSE            PULSEPERROUND / 360
+#define JOINT3_MMTOPULSE             (PULSEPERROUND * 2.5625) / 8
+#define JOINT4_DEGTOPULSE            (PULSEPERROUND * 4) / 360
+
+#define JOINT1_RADTOPULSE            PULSEPERROUND / (PI * 2)
+#define JOINT2_RADTOPULSE            PULSEPERROUND / (PI * 2)
+#define JOINT4_RADTOPULSE            (PULSEPERROUND * 4) / (PI * 2)
+
+#define DEGTORAD                     0.0174532925
 
 #define J1_OFFSETTOHOMECONFIGURATION 1718
-#define J2_OFFSETTOHOMECONFIGURATION -48500
+#define J2_OFFSETTOHOMECONFIGURATION -3545
 #define J3_OFFSETTOHOMECONFIGURATION 0
 #define J4_OFFSETTOHOMECONFIGURATION 6548
 
@@ -197,8 +205,8 @@ int main(void)
   mhainw_amt10_init(&encoders[3], &htim4);
   mhainw_amt10_init(&chessboardenc, &htim8);
 
-  mhainw_control_init(&position_jointcontroller[0],500,0.05,0);
-  mhainw_control_init(&position_jointcontroller[1],2000,0.5,0);
+  mhainw_control_init(&position_jointcontroller[0],500,0.1,0);
+  mhainw_control_init(&position_jointcontroller[1],2000,0.1,0);
   mhainw_control_init(&position_jointcontroller[2],100,0.9,0);
   mhainw_control_init(&position_jointcontroller[3],500,0.5,0);
 
@@ -223,27 +231,27 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 
   mhainw_robot_sethome();
-/*
-  //testtraj
-
+  //testtra
+///*
 	jointsetpoint[0] = setpoint_test[0][0];
 	jointsetpoint[1] = setpoint_test[0][1];
 	jointsetpoint[2] = setpoint_test[0][2];
 	jointsetpoint[3] = setpoint_test[0][3];
-	mhainw_trajectory_generatetraj(&quinticTrajectory[0],5,jointconfig[0],jointsetpoint[0],0,0,0,0);
+	mhainw_trajectory_generatetraj(&quinticTrajectory[0],7,jointconfig[0],jointsetpoint[0],0,0,0,0);
 	quinticTrajectory[0].initial_time = HAL_GetTick();
-	mhainw_trajectory_generatetraj(&quinticTrajectory[1],5,jointconfig[1],jointsetpoint[1],0,0,0,0);
+	mhainw_trajectory_generatetraj(&quinticTrajectory[1],7,jointconfig[1],jointsetpoint[1],0,0,0,0);
 	quinticTrajectory[1].initial_time = HAL_GetTick();
-	mhainw_trajectory_generatetraj(&quinticTrajectory[2],5,jointconfig[2],jointsetpoint[2],0,0,0,0);
+	mhainw_trajectory_generatetraj(&quinticTrajectory[2],7,jointconfig[2],jointsetpoint[2],0,0,0,0);
 	quinticTrajectory[2].initial_time = HAL_GetTick();
-	mhainw_trajectory_generatetraj(&quinticTrajectory[3],5,jointconfig[3],jointsetpoint[3],0,0,0,0);
+	mhainw_trajectory_generatetraj(&quinticTrajectory[3],7,jointconfig[3],jointsetpoint[3],0,0,0,0);
 	quinticTrajectory[3].initial_time = HAL_GetTick();
 	quinticTrajectory[0].havetraj = 1;
 	quinticTrajectory[1].havetraj = 1;
 	quinticTrajectory[2].havetraj = 1;
 	quinticTrajectory[3].havetraj = 1;
+//*/
 	//end test traj
-*/
+
 
   while (1)
   {
@@ -272,15 +280,15 @@ int main(void)
 					else{
 						quinticTrajectory[joint].havetraj = 0;
 						user.goal_reach[joint] = 1;
-/*
+///*
 						//terst traj
 						setpoint_test_indx[joint] = (setpoint_test_indx[joint] + 1) % 2;
 						jointsetpoint[joint] = setpoint_test[setpoint_test_indx[joint]][joint];
-						mhainw_trajectory_generatetraj(&quinticTrajectory[joint],5,jointconfig[joint],jointsetpoint[joint],0,0,0,0);
+						mhainw_trajectory_generatetraj(&quinticTrajectory[joint],7,jointconfig[joint],jointsetpoint[joint],0,0,0,0);
 						quinticTrajectory[joint].initial_time = HAL_GetTick();
 						quinticTrajectory[joint].havetraj = 1;
 						//end test traj
-*/
+//*/
 					}
 				}
 				//joint limit
@@ -293,10 +301,10 @@ int main(void)
 				//update position control
 				mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsetpoint[joint], jointconfig[joint]);
 				//update velocity control
-				mhainw_control_controllerupdate(&velocity_jointcontroller[joint],
-						position_jointcontroller[joint].output + jointvelocitysetpoint[joint] , kalmanjoint[joint].x2);
+				jointvelocitysetpoint[joint] += position_jointcontroller[joint].output;
+				mhainw_control_controllerupdate(&velocity_jointcontroller[joint],jointvelocitysetpoint[joint] , kalmanjoint[joint].x2);
+				mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
 
-				mhainw_stepper_setspeed(&motors[joint], velocity_jointcontroller[joint].output);
 			}
 		  }
 	  }
@@ -422,6 +430,7 @@ void mhainw_robot_sethome(){
 		jointconfig[i] = jointstate[i] / radtopulse[i];
 		jointsetpoint[i] = jointconfig[i];
 	}
+
 }
 
 void mhainw_command_statemachine(Protocol *uart){
