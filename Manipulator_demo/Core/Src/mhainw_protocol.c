@@ -159,8 +159,8 @@ void UARTsendit(Protocol *uart){
 		uint16_t sentlen = (uart->Txhead > uart->Txtail) ?
 				uart->Txhead - uart->Txtail : Txlen - uart->Txhead;
 
-		HAL_UART_Transmit_IT(uart->handleuart, &(uart->Txbuffer[uart->Txtail]),
-							sentlen);
+		HAL_UART_Transmit(uart->handleuart, &(uart->Txbuffer[uart->Txtail]),
+							sentlen,100);
 
 		uart->Txtail = (uart->Txtail + sentlen) % Txlen;
 	}
@@ -195,6 +195,26 @@ void UARTsentACK(Protocol *uart,uint8_t ack){
 	uint8_t temp[] = { 0xFF, 0x02 , ack};
 	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
 }
+void UARTsentFeedback(Protocol *uart,uint8_t ack,float *jointconfig){
+	/*
+	 *
+	 * function the use to send set of package for acknowledge start or finish command
+	 *
+	 * */
+	uint8_t temp_feedback[8];
+	temp_feedback[0] = ((int16_t)(jointconfig[0] * 100) >> 8) & 0xFF;
+	temp_feedback[1] = (int16_t)(jointconfig[0] * 100) & 0xFF;
+	temp_feedback[2] = ((int16_t)(jointconfig[1] * 100) >> 8) & 0xFF;
+	temp_feedback[3] = (int16_t)(jointconfig[1] * 100) & 0xFF;
+	temp_feedback[4] = ((int16_t)(jointconfig[2] * 100) >> 8) & 0xFF;
+	temp_feedback[5] = (int16_t)(jointconfig[2] * 100) & 0xFF;
+	temp_feedback[6] = ((int16_t)(jointconfig[3] * 100) >> 8) & 0xFF;
+	temp_feedback[7] = (int16_t)(jointconfig[3] * 100) & 0xFF;
 
+	uint8_t temp[] = { 0xFF, 9 , ack , temp_feedback[0],temp_feedback[1],temp_feedback[2],
+			temp_feedback[3],temp_feedback[4],temp_feedback[5],temp_feedback[6],temp_feedback[7]};
+	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
+
+}
 
 

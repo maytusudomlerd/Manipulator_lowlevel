@@ -8,7 +8,7 @@
 #ifndef INC_MHAINW_KALMANFILTER_H_
 #define INC_MHAINW_KALMANFILTER_H_
 
-#define dt 0.002
+#define dt 0.001
 
 typedef struct{
 	float R;

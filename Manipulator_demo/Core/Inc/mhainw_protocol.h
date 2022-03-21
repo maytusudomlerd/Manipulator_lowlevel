@@ -24,9 +24,8 @@
 #define MHAINW_GRIPPER               0x50
 #define MHAINW_GRIPPER_READCURRENT   0x51
 #define MHAINW_GRIPPER_SETCURRENT    0x52
-#define MHAINW_UNIT_ENCODER          0x60
-#define MHAINW_UNIT_MOTOR            0x61
-#define MHAINW_UINT_PROX             0x62
+#define MHAINW_REQUIRE_FEEDBACK         0x60
+#define MHAINW_JOINT_FEEDBACK           0x61
 
 #define MHAINW_SETHOME_ACK           0xA1
 #define MHAINW_JOG_ACK               0xA2
@@ -56,8 +55,8 @@ typedef enum{
 
 typedef struct{
 	UART_HandleTypeDef *handleuart;
-	uint8_t Rxbuffer[100];
-	uint8_t Txbuffer[100];
+	uint8_t Rxbuffer[512];
+	uint8_t Txbuffer[2048];
 	int8_t data[100];
 	uint8_t Txhead,Rxtail,Txtail;
 	uint8_t len;
@@ -78,5 +77,5 @@ uint8_t UARTgetRxhead(Protocol *uart);
 void UARTsentERR(Protocol *uart,uint8_t errtype);
 void UARTsentACK(Protocol *uart,uint8_t ack);
 void UARTsendit(Protocol *uart);
-
+void UARTsentFeedback(Protocol *uart,uint8_t ack,float *jointconfig);
 #endif /* INC_MHAINW_PROTOCOL_H_ */
