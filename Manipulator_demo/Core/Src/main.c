@@ -102,8 +102,9 @@ float setpoint[4];   //target point in encoder unit(pulse)
 float taskconfig[4] = {0};  //now position in task space
 float jointconfig[4] = {0}; //now position in configuration space
 float tasksetpoint[4]; //target point in task space
-float jointsetpoint[4]; //target point in configuration space
-float jointvelocitysetpoint[4]; //target velocity in configuration space
+float jointsetpoint[4] = {0}; //target point in configuration space
+float jointsubsetpoint[4] = {0};
+float jointvelocitysetpoint[4] = {0}; //target velocity in configuration space
 
 float temp[4];
 int16_t goal;
@@ -125,8 +126,8 @@ uint8_t control_flag = 1;
 uint8_t Proximity_state[4];
 
 uint8_t setpoint_test_indx[4] = {0};
-float setpoint_test[2][4] = {{J1_POSITIVE_JOINTLIMIT/2, J2_POSITIVE_JOINTLIMIT/2, J3_UP_JOINTLIMIT, 0},
-		                     {J1_NEGATIVE_JOINTLIMIT/2, J2_NEGATIVE_JOINTLIMIT/2, J3_UP_JOINTLIMIT, 0}};
+float setpoint_test[2][4] = {{0, 0, J3_UP_JOINTLIMIT, (J4_POSITIVE_JOINTLIMIT)/2},
+		                     {0, 0, J3_UP_JOINTLIMIT, (J4_NEGATIVE_JOINTLIMIT)/2}};
 
 
 uint8_t robot_feedback = 0;
@@ -142,6 +143,7 @@ void jogcatesian(Protocol *uart,float *jointsetpoint);
 void jogjoint(Protocol *uart,float *jointsetpoint);
 void movejoint(Protocol *uart,float *jointsetpoint);
 void movecartesian(Protocol *uart,float *jointsetpoint);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -161,7 +163,8 @@ int main(void)
 
   /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */  HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -190,8 +193,8 @@ int main(void)
   MX_TIM7_Init();
   MX_TIM2_Init();
   MX_UART7_Init();
-  MX_TIM5_Init();
   MX_TIM8_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
   mhainw_protocol_init(&user, &huart3);
@@ -201,24 +204,24 @@ int main(void)
   mhainw_stepper_init(&motors[2], &htim14, TIM_CHANNEL_1 , dir2_GPIO_Port, dir2_Pin);
   mhainw_stepper_init(&motors[3], &htim17, TIM_CHANNEL_1 , dir4_GPIO_Port, dir4_Pin);
 
-  mhainw_amt10_init(&encoders[0], &htim5);
+  mhainw_amt10_init(&encoders[0], &htim1);
   mhainw_amt10_init(&encoders[1], &htim2);
   mhainw_amt10_init(&encoders[2], &htim3);
   mhainw_amt10_init(&encoders[3], &htim4);
   mhainw_amt10_init(&chessboardenc, &htim8);
 
   mhainw_control_init(&position_jointcontroller[0],20,0.01,0);
-  mhainw_control_init(&position_jointcontroller[1],15,0.001,0);
+  mhainw_control_init(&position_jointcontroller[1],20,0.01,0);
   mhainw_control_init(&position_jointcontroller[2],0,0,0);
-  mhainw_control_init(&position_jointcontroller[3],0,0,0);
+  mhainw_control_init(&position_jointcontroller[3],10,0,0);
 
   mhainw_control_init(&velocity_jointcontroller[0],50,0.01,0);
-  mhainw_control_init(&velocity_jointcontroller[1],150,0.001,10);
+  mhainw_control_init(&velocity_jointcontroller[1],130,0.01,200);
   mhainw_control_init(&velocity_jointcontroller[2],10,0,0);
-  mhainw_control_init(&velocity_jointcontroller[3],10,0,0);
+  mhainw_control_init(&velocity_jointcontroller[3],200,0.01,0);
 
   mhainw_kalmanfilter_init(&kalmanjoint[0],0,0,0,0,0,0,kalman_Q,kalman_R);
-  mhainw_kalmanfilter_init(&kalmanjoint[1],0,0,0,0,0,0,5000,0.01);
+  mhainw_kalmanfilter_init(&kalmanjoint[1],0,0,0,0,0,0,kalman_Q,kalman_R);
   mhainw_kalmanfilter_init(&kalmanjoint[2],0,0,0,0,0,0,kalman_Q,kalman_R);
   mhainw_kalmanfilter_init(&kalmanjoint[3],0,0,0,0,0,0,kalman_Q,kalman_R);
 
@@ -233,27 +236,16 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 
   mhainw_robot_sethome();
-  //testtra
-///*
-	jointsetpoint[0] = setpoint_test[0][0];
-	jointsetpoint[1] = setpoint_test[0][1];
-	jointsetpoint[2] = setpoint_test[0][2];
-	jointsetpoint[3] = setpoint_test[0][3];
-	mhainw_trajectory_generatetraj(&quinticTrajectory[0],10,jointconfig[0],jointsetpoint[0],0,0,0,0);
-	quinticTrajectory[0].initial_time = HAL_GetTick();
-	mhainw_trajectory_generatetraj(&quinticTrajectory[1],10,jointconfig[1],jointsetpoint[1],0,0,0,0);
-	quinticTrajectory[1].initial_time = HAL_GetTick();
-	mhainw_trajectory_generatetraj(&quinticTrajectory[2],10,jointconfig[2],jointsetpoint[2],0,0,0,0);
-	quinticTrajectory[2].initial_time = HAL_GetTick();
-	mhainw_trajectory_generatetraj(&quinticTrajectory[3],10
-			,jointconfig[3],jointsetpoint[3],0,0,0,0);
-	quinticTrajectory[3].initial_time = HAL_GetTick();
-	quinticTrajectory[0].havetraj = 1;
-	quinticTrajectory[1].havetraj = 1;
-	quinticTrajectory[2].havetraj = 1;
-	quinticTrajectory[3].havetraj = 1;
-//*/
-	//end test traj
+
+
+  for(int i=0;i<4;i++){
+	  jointsetpoint[i] = setpoint_test[0][i];
+		mhainw_trajectory_generatetraj(&quinticTrajectory[i],10,jointconfig[i],jointsetpoint[i],0,0,0,0);
+//		quinticTrajectory[i].initial_time = HAL_GetTick();
+		quinticTrajectory[i].havetraj = 1;
+  }
+
+
 
 
   while (1)
@@ -265,7 +257,7 @@ int main(void)
 		  if(HAL_GetTick() - timestamp >= 1){
 			timestamp = HAL_GetTick();
 
-			for(joint = 0;joint<4;joint++){
+			for(joint =0;joint<4;joint++){
 				//read encoder
 				jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
 				//convert pulse to rad
@@ -273,36 +265,36 @@ int main(void)
 				mhainw_kalmanfilter_updatekalman(&kalmanjoint[joint],jointconfig[joint]);
 
 				if(quinticTrajectory[joint].havetraj == 1){
-					quinticTrajectory[joint].t = (HAL_GetTick() - quinticTrajectory[joint].initial_time) / 1000;
+//					quinticTrajectory[joint].t = (HAL_GetTick() - quinticTrajectory[joint].initial_time) / 1000;
 					if(quinticTrajectory[joint].t <= quinticTrajectory[joint].Tk){
 						mhainw_trajectory_updatetraj(&quinticTrajectory[joint]); // q da ddq viapoint
-						jointsetpoint[joint] = quinticTrajectory[joint].q;
+						jointsubsetpoint[joint] = quinticTrajectory[joint].q;
 						jointvelocitysetpoint[joint] = quinticTrajectory[joint].dq;
 					}
 					else{
 						quinticTrajectory[joint].havetraj = 0;
 						user.goal_reach[joint] = 1;
 
-///*
 						//terst traj
 						setpoint_test_indx[joint] = (setpoint_test_indx[joint] + 1) % 2;
 						jointsetpoint[joint] = setpoint_test[setpoint_test_indx[joint]][joint];
-						mhainw_trajectory_generatetraj(&quinticTrajectory[joint],10,jointconfig[joint],jointsetpoint[joint],0,0,0,0);
-						quinticTrajectory[joint].initial_time = HAL_GetTick();
+						mhainw_trajectory_generatetraj(&quinticTrajectory[joint],7,jointconfig[joint],jointsetpoint[joint],0,0,0,0);
+//						quinticTrajectory[joint].initial_time = HAL_GetTick();
 						quinticTrajectory[joint].havetraj = 1;
 						//end test traj
-//*/
+
+
 					}
 				}
 				//joint limit
 				if(jointsetpoint[joint] >= positive_jointlimit[joint]){
-							  jointsetpoint[joint] = positive_jointlimit[joint];
+					jointsetpoint[joint] = positive_jointlimit[joint];
 				}
 			    if(jointsetpoint[joint] <= negative_jointlimit[joint]){
 				  jointsetpoint[joint] = negative_jointlimit[joint];
 			    }
 				//update position control
-				mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsetpoint[joint], jointconfig[joint]);
+				mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsubsetpoint[joint], jointconfig[joint]);
 				//update velocity control
 				mhainw_control_controllerupdate(&velocity_jointcontroller[joint],jointvelocitysetpoint[joint] + position_jointcontroller[joint].output , kalmanjoint[joint].x2);
 				mhainw_stepper_setspeed(&motors[joint], velocity_jointcontroller[joint].output);
@@ -429,7 +421,7 @@ void mhainw_robot_sethome(){
 	HAL_Delay(1000);
 	//state 3 : set current position and offset home configuration
 
-	htim5.Instance->CNT = 0;
+	htim1.Instance->CNT = 0;
 	htim2.Instance->CNT = 0;
 	htim3.Instance->CNT = 0;
 	htim4.Instance->CNT = 0;
@@ -438,6 +430,7 @@ void mhainw_robot_sethome(){
 		jointstate[i] = jointoffset[i];
 		jointconfig[i] = jointstate[i] / radtopulse[i];
 		jointsetpoint[i] = jointconfig[i];
+		jointsubsetpoint[i] = jointsetpoint[i];
 	}
 }
 
@@ -556,7 +549,7 @@ void mhainw_command_statemachine(Protocol *uart){
 				movejoint(uart,jointsetpoint);
 				for(int i=0;i<4;i++){
 					uart->goal_reach[i] = 0;
-					mhainw_trajectory_generatetraj(&quinticTrajectory[i],7,jointconfig[i],jointsetpoint[i],0,0,0,0);
+					mhainw_trajectory_generatetraj(&quinticTrajectory[i],5,jointconfig[i],jointsetpoint[i],0,0,0,0);
 					quinticTrajectory[i].initial_time = HAL_GetTick();
 					quinticTrajectory[i].havetraj = 1;
 				}

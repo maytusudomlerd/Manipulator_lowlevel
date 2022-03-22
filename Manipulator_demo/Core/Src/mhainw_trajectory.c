@@ -42,6 +42,6 @@ void mhainw_trajectory_updatetraj(Trajectory *traj)
 	traj->q = c0 + c1*t + c2*t_pow2 + c3*t_pow3 + c4*t_pow4 + c5*t_pow5;
 	traj->dq = c1 + 2*c2*t + 3*c3*t_pow2 + 4*c4*t_pow3 + 5*c5*t_pow4;
 //	traj->ddq = 2*c2 + 6*c3*t + 12*c4*t_pow2 + 20*c5*t_pow3;
-//	traj->t += traj->delta_t;
+	traj->t += traj->delta_t;
 }
 

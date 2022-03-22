@@ -80,10 +80,6 @@ void Error_Handler(void);
 #define pulse2_GPIO_Port GPIOF
 #define MCO_Pin GPIO_PIN_0
 #define MCO_GPIO_Port GPIOH
-#define ENC1_A_Pin GPIO_PIN_0
-#define ENC1_A_GPIO_Port GPIOA
-#define ENC1_B_Pin GPIO_PIN_1
-#define ENC1_B_GPIO_Port GPIOA
 #define pulse1_Pin GPIO_PIN_6
 #define pulse1_GPIO_Port GPIOA
 #define dir1_Pin GPIO_PIN_1
@@ -112,10 +108,6 @@ void Error_Handler(void);
 #define chessboard_A_GPIO_Port GPIOC
 #define chessboard_B_Pin GPIO_PIN_7
 #define chessboard_B_GPIO_Port GPIOC
-#define USB_SOF_Pin GPIO_PIN_8
-#define USB_SOF_GPIO_Port GPIOA
-#define USB_VBUS_Pin GPIO_PIN_9
-#define USB_VBUS_GPIO_Port GPIOA
 #define USB_ID_Pin GPIO_PIN_10
 #define USB_ID_GPIO_Port GPIOA
 #define USB_DM_Pin GPIO_PIN_11
