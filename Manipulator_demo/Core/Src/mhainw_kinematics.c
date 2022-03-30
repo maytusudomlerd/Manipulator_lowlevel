@@ -93,3 +93,51 @@ void IVK(float *q, float *dX, float *dq)
             c_dq_tmp) + dX[2] * f_dq_tmp) / (260.0 * c_dq_tmp);
 
 }
+void chessboardtorobot(float xp, float yp, float chessboard_position, float chessboard_offset, float *taskconfig)
+{
+	//position in x
+	//position in y
+	//theta of chessboard
+	//offset of chessboard
+	//taskconfig output of of function {rz x y z}
+  float b_p_tmp;
+  float eulShaped_idx_2;
+  float p_tmp;
+  float X[4] = {0};
+  p_tmp = cos(chessboard_position);
+  b_p_tmp = sin(chessboard_position);
+  eulShaped_idx_2 = atan2(b_p_tmp, p_tmp);
+  if (sqrt(p_tmp * p_tmp + b_p_tmp * b_p_tmp) < 2.2204460492503131E-15) {
+    eulShaped_idx_2 = 0.0;
+  }
+  X[0] = eulShaped_idx_2;
+  X[1] = (chessboard_offset + xp * p_tmp) - yp * b_p_tmp;
+  X[2] = yp * p_tmp + xp * b_p_tmp;
+  X[3] = 100.0;
+  memcpy(taskconfig,X,strlen(X)+1);
+}
+
+/*
+void chessboardtorobot position(Encoder cecn,uint8_t hpos,uint8_t vpos,,float jointsetpoint){
+	float temp_taskconfig[4] = {0};
+	static float hchessboard8][8] = {{1,2,3,4,5,6,7,8},
+							{1,2,3,4,5,6,7,8},
+							{1,2,3,4,5,6,7,8},
+							{1,2,3,4,5,6,7,8},
+							{1,2,3,4,5,6,7,8},
+							{1,2,3,4,5,6,7,8},
+						    {1,2,3,4,5,6,7,8},
+					   	    {1,2,3,4,5,6,7,8}};
+	static float vchessboard[8][8] = {{1,2,3,4,5,6,7,8},
+								{1,2,3,4,5,6,7,8},
+								{1,2,3,4,5,6,7,8},
+								{1,2,3,4,5,6,7,8},
+								{1,2,3,4,5,6,7,8},
+								{1,2,3,4,5,6,7,8},
+							    {1,2,3,4,5,6,7,8},
+						   	    {1,2,3,4,5,6,7,8}};
+	chessboardtorobot(hchessboard[hpos][vpos],vchessboard[hpos][vpos],chessboardposition,chessboard.offset,temp_taskconfig);
+	IPK(temp_taskconfig,-1,jointsetpoint);
+}
+*/
+

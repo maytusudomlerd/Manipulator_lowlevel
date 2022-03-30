@@ -14,6 +14,7 @@
 typedef struct{
 	TIM_HandleTypeDef *Timehandle;
 	uint32_t perv_pos;
+	uint32_t offset;
 }Encoder;
 
 

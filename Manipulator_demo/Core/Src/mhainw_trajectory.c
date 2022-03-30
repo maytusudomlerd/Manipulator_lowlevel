@@ -9,6 +9,7 @@
 
 void mhainw_trajectory_init(Trajectory *traj,float delta_t){
 	traj->delta_t = delta_t;
+	traj->setpoint = 0;
 	traj->havetraj =0;
 }
 void mhainw_trajectory_generatetraj(Trajectory *traj,float T,float q_i,float q_f,float dq_i,float dq_f,float ddq_i,float ddq_f){

@@ -21,6 +21,7 @@ typedef struct{
 	float dq;
 	float ddq;
 	float Vmax;
+	float setpoint;
 }Trajectory;
 
 void mhainw_trajectory_init(Trajectory *traj,float delta_t);
