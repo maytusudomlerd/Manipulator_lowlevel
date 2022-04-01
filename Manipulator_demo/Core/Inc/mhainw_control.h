@@ -17,9 +17,12 @@ typedef struct{
 
 	float p_term, i_term, d_term;
 	float output;
+
+	float limit_i,limit_out;
 }Controller;
 
-void mhainw_control_init(Controller *pid,float kp, float ki, float kd);
+void mhainw_control_init(Controller *pid,float kp, float ki, float kd,float limit_i,float limit_out);
+void mhainw_control_setcontrollimit(Controller *pid,float limit_i,float limit_out);
 void mhainw_control_controllerupdate(Controller *pid, float setpoint, float jointstate);
 
 

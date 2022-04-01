@@ -25,7 +25,7 @@
 #define JOINT3_MIN_FREQUENCY -2500.0
 #define JOINT4_MIN_FREQUENCY -300.0
 
-#define MIN_FREQUENCY 16
+#define MIN_FREQUENCY 50
 
 #define CCW 0
 #define CW 1

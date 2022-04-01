@@ -63,7 +63,7 @@
 #define DEGTORAD                     0.0174532925
 
 #define J1_OFFSETTOHOMECONFIGURATION 1718
-#define J2_OFFSETTOHOMECONFIGURATION -3515
+#define J2_OFFSETTOHOMECONFIGURATION -3445
 #define J3_OFFSETTOHOMECONFIGURATION 0
 #define J4_OFFSETTOHOMECONFIGURATION 6548
 
@@ -126,8 +126,8 @@ uint8_t control_flag = 1;
 uint8_t Proximity_state[4];
 
 uint8_t setpoint_test_indx[4] = {0};
-float setpoint_test[2][4] = {{(J1_POSITIVE_JOINTLIMIT)/2, (J2_POSITIVE_JOINTLIMIT)/2, (J3_UP_JOINTLIMIT)/2, (J1_POSITIVE_JOINTLIMIT)/2},
-		                     {(J1_NEGATIVE_JOINTLIMIT)/2, (J2_NEGATIVE_JOINTLIMIT)/2, (J3_DOWN_JOINTLIMIT)/2, (J1_NEGATIVE_JOINTLIMIT)/2}};
+float setpoint_test[2][4] = {{(J1_NEGATIVE_JOINTLIMIT)/2, (J2_NEGATIVE_JOINTLIMIT)/2, 0, 0},
+		                     {(J1_NEGATIVE_JOINTLIMIT)/2,(J2_NEGATIVE_JOINTLIMIT)/2, 0, 0}};
 
 
 uint8_t robot_feedback = 0;
@@ -210,15 +210,15 @@ int main(void)
   mhainw_amt10_init(&encoders[3], &htim4);
   mhainw_amt10_init(&chessboardenc, &htim8);
 
-  mhainw_control_init(&position_jointcontroller[0],20,0.01,0);
-  mhainw_control_init(&position_jointcontroller[1],30,0,0);
-  mhainw_control_init(&position_jointcontroller[2],10,0,0);
-  mhainw_control_init(&position_jointcontroller[3],10,0,0);
+  mhainw_control_init(&position_jointcontroller[0],15,0,0,300,300);
+  mhainw_control_init(&position_jointcontroller[1],10,0,0,300,1000);
+  mhainw_control_init(&position_jointcontroller[2],10,0,0,300,2500);
+  mhainw_control_init(&position_jointcontroller[3],10,0,0,300,300);
 
-  mhainw_control_init(&velocity_jointcontroller[0],50,0.01,0);
-  mhainw_control_init(&velocity_jointcontroller[1],100,0.5,50);
-  mhainw_control_init(&velocity_jointcontroller[2],50,0.01,0);
-  mhainw_control_init(&velocity_jointcontroller[3],200,0.01,0);
+  mhainw_control_init(&velocity_jointcontroller[0],125,0.007,0,300,300);
+  mhainw_control_init(&velocity_jointcontroller[1],100,0.5,50,300,1000);
+  mhainw_control_init(&velocity_jointcontroller[2],50,0.01,0,300,2500);
+  mhainw_control_init(&velocity_jointcontroller[3],200,0.01,0,300,300);
 
   mhainw_kalmanfilter_init(&kalmanjoint[0],0,0,0,0,0,0,kalman_Q,kalman_R);
   mhainw_kalmanfilter_init(&kalmanjoint[1],0,0,0,0,0,0,kalman_Q,kalman_R);
@@ -237,13 +237,12 @@ int main(void)
 
   mhainw_robot_sethome();
 
+
 ///*
   for(int i=0;i<4;i++){
 	  quinticTrajectory[i].setpoint = setpoint_test[0][i];
-		mhainw_trajectory_generatetraj(&quinticTrajectory[i],10,jointconfig[i],quinticTrajectory[i].setpoint,0,0,0,0);
-//		quinticTrajectory[i].initial_time = HAL_GetTick();
-		quinticTrajectory[i].havetraj = 1;
   }
+  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
 //  */
 
 
@@ -278,15 +277,13 @@ int main(void)
 
 //						/*
 						//terst traj
-						setpoint_test_indx[joint] = (setpoint_test_indx[joint] + 1) % 2;
-						quinticTrajectory[joint].setpoint = setpoint_test[setpoint_test_indx[joint]][joint];
-						mhainw_trajectory_generatetraj(&quinticTrajectory[joint],7,jointconfig[joint],quinticTrajectory[joint].setpoint,0,0,0,0);
-//						quinticTrajectory[joint].initial_time = HAL_GetTick();
-						quinticTrajectory[joint].havetraj = 1;
+						for(int i=0;i<4;i++){
+							setpoint_test_indx[i] = (setpoint_test_indx[i] + 1) % 2;
+							quinticTrajectory[i].setpoint = setpoint_test[setpoint_test_indx[i]][i];
+						}
+						mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
 						//end test traj
 //						 */
-
-
 
 					}
 				}
@@ -301,6 +298,7 @@ int main(void)
 				mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsetpoint[joint], jointconfig[joint]);
 				//update velocity control
 				mhainw_control_controllerupdate(&velocity_jointcontroller[joint],jointvelocitysetpoint[joint] + position_jointcontroller[joint].output , kalmanjoint[joint].x2);
+
 				mhainw_stepper_setspeed(&motors[joint], velocity_jointcontroller[joint].output);
 
 			}
@@ -400,8 +398,13 @@ void mhainw_robot_sethome(){
 	}
 	mhainw_stepper_setspeed(&motors[3], 0);
 
+	while(Proximity_state[2] != 1){
+			mhainw_stepper_setspeed(&motors[2], 1000);
+	}
+	mhainw_stepper_setspeed(&motors[2], 0);
+
 	//state 2 : move to home position
-	while(sethome[0] != 1 || sethome[1] !=1 || sethome[2] != 1){
+	while(sethome[0] != 1 || sethome[1] !=1 ){
 
 		if(Proximity_state[0] == 1){
 			mhainw_stepper_setspeed(&motors[0], 0);
@@ -412,27 +415,22 @@ void mhainw_robot_sethome(){
 		if(Proximity_state[1] == 1){
 			mhainw_stepper_setspeed(&motors[1], 0);
 			sethome[1] = 1;
-		} else {
-			mhainw_stepper_setspeed(&motors[1], -500);
-		}
-		if(Proximity_state[2] == 1){
-			mhainw_stepper_setspeed(&motors[2], 0);
-			sethome[2] = 1;
 		} else{
-			mhainw_stepper_setspeed(&motors[2], 1000);
+			mhainw_stepper_setspeed(&motors[1], -300);
 		}
 	}
 	HAL_Delay(1000);
 	//state 3 : set current position and offset home configuration
 
-	htim1.Instance->CNT = jointoffset[0];
-	htim2.Instance->CNT = 65535 + jointoffset[1];
-	htim3.Instance->CNT = jointoffset[2];
-	htim4.Instance->CNT = jointoffset[3];
+	htim1.Instance->CNT = 0;
+	htim2.Instance->CNT = 0;
+	htim3.Instance->CNT = 0;
+	htim4.Instance->CNT = 0;
 
 	for(int i =0;i<4;i++){
+		jointstate[i] = jointoffset[i];
+		jointconfig[i] = jointstate[i] / radtopulse[i];
 		jointsetpoint[i] = jointoffset[i] / radtopulse[i];
-//		jointsetpoint[i] = 0;
 	}
 }
 
@@ -497,7 +495,7 @@ void mhainw_command_statemachine(Protocol *uart){
 				for(int i=0;i<4;i++){
 					uart->goal_reach[i] = 0;
 					quinticTrajectory[i].setpoint = temp_setpoint[i];
-					mhainw_trajectory_generatetraj(&quinticTrajectory[i],0.3,jointconfig[i],quinticTrajectory[i].setpoint,0,0,0,0);
+//					mhainw_trajectory_generatetraj(&quinticTrajectory[i],0.3,jointconfig[i],quinticTrajectory[i].setpoint,0,0,0,0);
 					quinticTrajectory[i].initial_time = HAL_GetTick();
 					//cal Tk
 					quinticTrajectory[i].havetraj = 1;
@@ -513,12 +511,12 @@ void mhainw_command_statemachine(Protocol *uart){
 		case MHAINW_JOG_JOINT:
 			if(set == 0){
 				UARTsentACK(uart, MHAINW_JOG_ACK);
-				memcpy(temp_setpoint,jointsetpoint,strlen(temp_setpoint)+1);
+				memcpy(temp_setpoint,jointsetpoint,4);
 				jogjoint(uart,temp_setpoint);
 				for(int i=0;i<4;i++){
 					uart->goal_reach[i] = 0;
 					quinticTrajectory[i].setpoint = temp_setpoint[i];
-					mhainw_trajectory_generatetraj(&quinticTrajectory[i],0.5,jointconfig[i],quinticTrajectory[i].setpoint,0,0,0,0);
+//					mhainw_trajectory_generatetraj(&quinticTrajectory[i],0.5,jointconfig[i],quinticTrajectory[i].setpoint,0,0,0,0);
 					quinticTrajectory[i].initial_time = HAL_GetTick();
 					quinticTrajectory[i].havetraj = 1;
 				}
@@ -538,7 +536,7 @@ void mhainw_command_statemachine(Protocol *uart){
 				for(int i=0;i<4;i++){
 					uart->goal_reach[i] = 0;
 					quinticTrajectory[i].setpoint = temp_setpoint[i];
-					mhainw_trajectory_generatetraj(&quinticTrajectory[i],7,jointconfig[i],quinticTrajectory[i].setpoint,0,0,0,0);
+//					mhainw_trajectory_generatetraj(&quinticTrajectory[i],7,jointconfig[i],quinticTrajectory[i].setpoint,0,0,0,0);
 					quinticTrajectory[i].initial_time = HAL_GetTick();
 					quinticTrajectory[i].havetraj = 1;
 				}
@@ -559,7 +557,7 @@ void mhainw_command_statemachine(Protocol *uart){
 				for(int i=0;i<4;i++){
 					uart->goal_reach[i] = 0;
 					quinticTrajectory[i].setpoint = temp_setpoint[i];
-					mhainw_trajectory_generatetraj(&quinticTrajectory[i],5,jointconfig[i],quinticTrajectory[i].setpoint,0,0,0,0);
+//					mhainw_trajectory_generatetraj(&quinticTrajectory[i],5,jointconfig[i],quinticTrajectory[i].setpoint,0,0,0,0);
 					quinticTrajectory[i].initial_time = HAL_GetTick();
 					quinticTrajectory[i].havetraj = 1;
 				}
