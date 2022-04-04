@@ -15,6 +15,8 @@
 
 #define MHAINW_INITCHESSPOSE         0x99
 
+#define MHAINW_WAIT 0x00
+
 #define MHAINW_SETHOME               0x10
 #define MHAINW_JOG_CATESIAN          0x20
 #define MHAINW_JOG_JOINT             0x21
@@ -26,6 +28,9 @@
 #define MHAINW_GRIPPER_SETCURRENT    0x52
 #define MHAINW_REQUIRE_FEEDBACK         0x60
 #define MHAINW_JOINT_FEEDBACK           0x61
+
+#define MHAINW_TRAJGEN 0xC0
+
 
 #define MHAINW_SETHOME_ACK           0xA1
 #define MHAINW_JOG_ACK               0xA2

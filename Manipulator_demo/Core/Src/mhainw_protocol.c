@@ -130,19 +130,23 @@ void mhainw_protocol_sentdata(Protocol *uart,uint8_t *pData, uint16_t len){
 	uint16_t Txlen = sizeof(uart->Txbuffer);
 
 	//check length of data is more than buffer
-	uint16_t lendata = (len <= Txlen) ? len : Txlen;  //len=3
+//	uint16_t lendata = (len <= Txlen) ? len : Txlen;
+	if(len > Txlen){
+		uart->Txhead = 0;
+		uart->Txtail = 0;
+	}
 
-	//copy data to Txbuffer
-	uint16_t cancpy = (lendata <= Txlen - uart->Txhead) ? lendata : Txlen - uart->Txhead;
+//	//copy data to Txbuffer
+//	uint16_t cancpy = (lendata <= Txlen - uart->Txhead) ? lendata : Txlen - uart->Txhead;
 
-	memcpy(&(uart->Txbuffer[uart->Txhead]), pData, cancpy);
+	memcpy(&(uart->Txbuffer[uart->Txhead]), pData, len);
 
 	//move head to new position
-	uart->Txhead = (uart->Txhead + lendata) % Txlen;
+	uart->Txhead = (uart->Txhead + len) % Txlen;
 
-	if(lendata != cancpy){
-		memcpy(uart->Txbuffer, pData+cancpy, lendata - cancpy);
-	}
+//	if(lendata != cancpy){
+//		memcpy(uart->Txbuffer, pData+cancpy, lendata - cancpy);
+//	}
 	UARTsendit(uart);
 }
 
@@ -156,8 +160,7 @@ void UARTsendit(Protocol *uart){
 	uint16_t Txlen = sizeof(uart->Txbuffer);
 
 	if(uart->Txtail != uart->Txhead){
-		uint16_t sentlen = (uart->Txhead > uart->Txtail) ?
-				uart->Txhead - uart->Txtail : Txlen - uart->Txhead;
+		uint16_t sentlen = uart->Txhead - uart->Txtail;
 
 		HAL_UART_Transmit(uart->handleuart, &(uart->Txbuffer[uart->Txtail]),
 							sentlen,100);

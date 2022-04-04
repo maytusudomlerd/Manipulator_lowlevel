@@ -117,27 +117,29 @@ void chessboardtorobot(float xp, float yp, float chessboard_position, float ches
   memcpy(taskconfig,X,strlen(X)+1);
 }
 
-/*
-void chessboardtorobot position(Encoder cecn,uint8_t hpos,uint8_t vpos,,float jointsetpoint){
-	float temp_taskconfig[4] = {0};
-	static float hchessboard8][8] = {{1,2,3,4,5,6,7,8},
-							{1,2,3,4,5,6,7,8},
-							{1,2,3,4,5,6,7,8},
-							{1,2,3,4,5,6,7,8},
-							{1,2,3,4,5,6,7,8},
-							{1,2,3,4,5,6,7,8},
-						    {1,2,3,4,5,6,7,8},
-					   	    {1,2,3,4,5,6,7,8}};
-	static float vchessboard[8][8] = {{1,2,3,4,5,6,7,8},
-								{1,2,3,4,5,6,7,8},
-								{1,2,3,4,5,6,7,8},
-								{1,2,3,4,5,6,7,8},
-								{1,2,3,4,5,6,7,8},
-								{1,2,3,4,5,6,7,8},
-							    {1,2,3,4,5,6,7,8},
-						   	    {1,2,3,4,5,6,7,8}};
-	chessboardtorobot(hchessboard[hpos][vpos],vchessboard[hpos][vpos],chessboardposition,chessboard.offset,temp_taskconfig);
-	IPK(temp_taskconfig,-1,jointsetpoint);
-}
-*/
+
+//void chessboardtorobot position(Encoder enc,uint8_t hpos,uint8_t vpos,,float jointsetpoint){
+//	float temp_taskconfig[4] = {0};
+//	static float hchessboard[2][2] = {{1,1},
+//			{1,1}};
+////	static float hchessboard[8][8] = {{1,2,3,4,5,6,7,8},
+////							{1,2,3,4,5,6,7,8},
+////							{1,2,3,4,5,6,7,8},
+////							{1,2,3,4,5,6,7,8},
+////							{1,2,3,4,5,6,7,8},
+////							{1,2,3,4,5,6,7,8},
+////						    {1,2,3,4,5,6,7,8},
+////					   	    {1,2,3,4,5,6,7,8}};
+////	static float vchessboard[8][8] = {{1,2,3,4,5,6,7,8},
+////								{1,2,3,4,5,6,7,8},
+////								{1,2,3,4,5,6,7,8},
+////								{1,2,3,4,5,6,7,8},
+////								{1,2,3,4,5,6,7,8},
+////								{1,2,3,4,5,6,7,8},
+////							    {1,2,3,4,5,6,7,8},
+//						   	    {1,2,3,4,5,6,7,8}};
+////	chessboardtorobot(hchessboard[hpos][vpos],vchessboard[hpos][vpos],chessboardposition,chessboard.offset,temp_taskconfig);
+////	IPK(temp_taskconfig,-1,jointsetpoint);
+//}
+
 

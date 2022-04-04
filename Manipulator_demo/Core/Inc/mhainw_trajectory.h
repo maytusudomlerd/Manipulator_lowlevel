@@ -25,7 +25,9 @@ typedef struct{
 }Trajectory;
 
 void mhainw_trajectory_init(Trajectory *traj,float delta_t);
-void trajectory_generatetraj(Trajectory *traj,float q_i,float q_f);
+void trajectory_findTk(Trajectory *traj,float q_i,float q_f);
+void trajectory_generateTrajCoef(Trajectory *traj,float q_i,float q_f);
 void mhainw_trajectory_generatetraj(Trajectory *traj,float *q_i,float *q_f);
+
 void mhainw_trajectory_updatetraj(Trajectory *traj);
 #endif /* INC_MHAINW_TRAJECTORY_H_ */
