@@ -25,7 +25,7 @@ void mhainw_kalmanfilter_init(Kalmanfilter *kalman,float x1,float x2,float p11,f
 	kalman->R = R;
 }
 /*
- * function that update kalman parameter use 2 input first is struct kalman that keep K interations kalman parameter
+ * function that update kalman parameter use 2 input first is struck kalman that keep K iterations kalman parameter
  * second is theta(radiant) that value are read from encoder
  *
  */

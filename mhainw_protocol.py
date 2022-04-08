@@ -8,7 +8,8 @@ def checksum(data):
 def Rx():
     Rx_buf = []
     if ser.is_open:
-        Rx_buf = ser.read(3)
+        Rx_buf = ser.read(11)
+        print(Rx_buf)
     if Rx_buf[0] == 0xFF:
         instuction = Rx_buf[-1]
         if instuction == 0xA1:
@@ -122,14 +123,35 @@ def tx_move(position=[0,0,0,0], ref='home',type='j'):
     if ser.is_open:
         ser.write(tx_buff)
 
+def require_manipulator_position():
+    tx_buff = [0xff,0x02,0x71]
+    tx_buff.append(checksum(tx_buff[1:]))
+
+    print(tx_buff)
+    
+    if ser.is_open:
+        ser.write(tx_buff)
+
+def require_chessboard_position():
+    tx_buff = [0xff,0x02,0x70]
+    tx_buff.append(checksum(tx_buff[1:]))
+
+    print(tx_buff)
+    
+    if ser.is_open:
+        ser.write(tx_buff)
+
 if __name__ == "__main__":
-    # tx_sethome()
-    # tx_jog(axis='j2', step=15 , type='j')
+    tx_sethome()
+    # tx_jog(axis='j1', step=-10 , type='j')
     # tx_jog(axis='x', step=10, type='c')
-    # print(Rx())
     # tx_move(ref='current',type='j',position=[30,-60,0,0])
-    # tx_move(ref='home',type='j',position=[60,-120,0,0])
-    tx_move(ref='current',type='c',position=[-10,20,0,0])
+    # tx_move(ref='home',type='j',position=[0,0,0,0])
+    # tx_move(ref='current',type='c',position=[-10,20,0,0])
+
+    # require_manipulator_position()
+    # require_chessboard_position()
+    print(Rx())
 
 
 

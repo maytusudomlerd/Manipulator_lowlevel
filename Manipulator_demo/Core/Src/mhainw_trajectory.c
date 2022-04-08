@@ -19,16 +19,12 @@ void mhainw_trajectory_generatetraj(Trajectory *traj,float *q_i,float *q_f){
 	for(int i=0;i<4;i++){
 		trajectory_findTk(&traj[i],q_i[i],q_f[i]);
 	}
-	//find max tk
-	max_tk = traj[0].Tk;
-	for(int i=1;i<4;i++){
-		if(traj[i].Tk > max_tk){
-			max_tk = traj[i].Tk;
-		}
-	}
+
+	traj[0].Tk = traj[3].Tk;
+	traj[1].Tk = traj[3].Tk;
+	traj[2].Tk = traj[3].Tk;
 
 	for(int i=0;i<4;i++){
-		traj[i].Tk = max_tk;
 		trajectory_generateTrajCoef(&traj[i],q_i[i],q_f[i]);
 	}
 }
@@ -78,13 +74,15 @@ void trajectory_findTk(Trajectory *traj,float q_i,float q_f){
 			} else{
 				T *= 2;
 			}
-		} else{
+		} else if(traj->Vmax > 0){
 			if(traj->Vmax < maxspeedofjoint[joint]){
 				traj->Tk = T;
 				flag=0;
 			} else{
 				T *= 2;
 			}
+		} else{
+			flag = 0;
 		}
 	}
 

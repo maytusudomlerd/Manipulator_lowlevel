@@ -37,18 +37,21 @@ void mhainw_control_controllerupdate(Controller *pid, float setpoint, float join
 	pid->integrator += error;
 	//update integral term
 	pid->i_term = pid->ki * pid->integrator;
-//	if(pid->i_term > pid->limit_i){
-//		pid->i_term = pid->limit_i;
-//	}
+	if(pid->i_term > pid->limit_i){
+		pid->i_term = pid->limit_i;
+	}
 
 	pid->d_term = pid->kd * (error - pid->perv_error);
 	pid->perv_error = error;
 
-//	if(pid->output > pid->limit_out){
-//		pid->output = pid->limit_out;
-//	} else{
-//		pid->output = pid->p_term + pid->i_term + pid->d_term;
-//	}
+	if(pid->output > pid->limit_out){
+		pid->output = pid->limit_out;
+	} else if( (-1 * pid->output) > pid->limit_out){
+		pid->output = -1*pid->limit_out;
+	}
+	else{
+		pid->output = pid->p_term + pid->i_term + pid->d_term;
+	}
 	pid->output = pid->p_term + pid->i_term + pid->d_term;
 
 

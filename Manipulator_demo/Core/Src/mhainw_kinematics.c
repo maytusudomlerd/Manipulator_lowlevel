@@ -93,53 +93,76 @@ void IVK(float *q, float *dX, float *dq)
             c_dq_tmp) + dX[2] * f_dq_tmp) / (260.0 * c_dq_tmp);
 
 }
-void chessboardtorobot(float xp, float yp, float chessboard_position, float chessboard_offset, float *taskconfig)
+
+
+void chessboardtorobot(float xp, float yp, float chessboard_position, float *taskconfig)
 {
-	//position in x
-	//position in y
-	//theta of chessboard
-	//offset of chessboard
-	//taskconfig output of of function {rz x y z}
+	/*
+	function that transform pose of chessboard frame to manipulator end-effector frame
+	xp = position in x axis that robot want to go
+	yp = position in y axis that robot want to go
+	chessboard_position = theta of chessboard (rad)
+	chessboar_offset = offset of chessboard from base robot frame
+	taskconfig = output of of the function that in configuration space {rz x y z}
+	 */
   float b_p_tmp;
   float eulShaped_idx_2;
   float p_tmp;
-  float X[4] = {0};
+  static float chessboard_offset = 360.0;
   p_tmp = cos(chessboard_position);
   b_p_tmp = sin(chessboard_position);
   eulShaped_idx_2 = atan2(b_p_tmp, p_tmp);
   if (sqrt(p_tmp * p_tmp + b_p_tmp * b_p_tmp) < 2.2204460492503131E-15) {
     eulShaped_idx_2 = 0.0;
   }
-  X[0] = eulShaped_idx_2;
-  X[1] = (chessboard_offset + xp * p_tmp) - yp * b_p_tmp;
-  X[2] = yp * p_tmp + xp * b_p_tmp;
-  X[3] = 100.0;
-  memcpy(taskconfig,X,strlen(X)+1);
+  taskconfig[0] = eulShaped_idx_2;
+  taskconfig[1] = (chessboard_offset + xp * p_tmp) - yp * b_p_tmp;
+  taskconfig[2] = yp * p_tmp + xp * b_p_tmp;
+  taskconfig[3] = 100; //-80
+
+//  memcpy(taskconfig,X,strlen(X)+1);
 }
 
+void chessboardtemptochessboard(int target,float *x_position,float *y_position){
+	/*
+		function that transform pose of point in chessboard frame to chessboard frame
+		[  1  2   3   4   5   6   7   8  ]
+		[  9  10  11  12  13  14  15  16 ]
+		[  17 18  19  20  21  22  23  24 ]
+		[  25 26  27  28  29  30  31  32 ]
+		[  33 34  35  36  37  38  39  40 ]
+		[  41 42  43  44  45  46  47  48 ]
+		[  49 50  51  52  53  54  55  56 ]
+		[  57 58  59  60  61  62  63  64 ]
+		target = point on chessboard {0-64}
+		x_position = position in x axis of point on chessboard frame
+		y_position = position in y axis of point on chessboard frame
+	 */
+    float x,y;
+    for(int i = 8; i <= 64; i+=8){
+        if(target > i-8 && target <= i){
+            x = (i/8) < 5 ? 5-(i/8) : 4-(i/8);
+            y = target % 8 == 0 ? 8 : target % 8;
+            y = y < 5 ? 5-y : 4-y;
+            x = x*50 >= 0 ? x*50-25 : x*50+25;
+            y = y*50 >= 0 ? y*50-25 : y*50+25;
+        }
+    }
+    *x_position = x;
+    *y_position = y;
+}
 
-//void chessboardtorobot position(Encoder enc,uint8_t hpos,uint8_t vpos,,float jointsetpoint){
-//	float temp_taskconfig[4] = {0};
-//	static float hchessboard[2][2] = {{1,1},
-//			{1,1}};
-////	static float hchessboard[8][8] = {{1,2,3,4,5,6,7,8},
-////							{1,2,3,4,5,6,7,8},
-////							{1,2,3,4,5,6,7,8},
-////							{1,2,3,4,5,6,7,8},
-////							{1,2,3,4,5,6,7,8},
-////							{1,2,3,4,5,6,7,8},
-////						    {1,2,3,4,5,6,7,8},
-////					   	    {1,2,3,4,5,6,7,8}};
-////	static float vchessboard[8][8] = {{1,2,3,4,5,6,7,8},
-////								{1,2,3,4,5,6,7,8},
-////								{1,2,3,4,5,6,7,8},
-////								{1,2,3,4,5,6,7,8},
-////								{1,2,3,4,5,6,7,8},
-////								{1,2,3,4,5,6,7,8},
-////							    {1,2,3,4,5,6,7,8},
-//						   	    {1,2,3,4,5,6,7,8}};
-////	chessboardtorobot(hchessboard[hpos][vpos],vchessboard[hpos][vpos],chessboardposition,chessboard.offset,temp_taskconfig);
-////	IPK(temp_taskconfig,-1,jointsetpoint);
-//}
+void pointinchessboardtomanipulator(int targetpoint,float *jointsetpoint){
+	float chessboard_x,chessboard_y;
+	float temp_tasksetpoint[4] = {0};
+	float temp_jointsetpoint[4] = {0};
+	chessboardtemptochessboard(targetpoint,&chessboard_x,&chessboard_y);
+	chessboardtorobot(chessboard_x,chessboard_y,0,temp_tasksetpoint);
+	IPK(temp_tasksetpoint,-1,temp_jointsetpoint);
+	jointsetpoint[0] = temp_jointsetpoint[0];
+	jointsetpoint[1] = temp_jointsetpoint[1];
+	jointsetpoint[2] = temp_jointsetpoint[2];
+	jointsetpoint[3] = temp_jointsetpoint[3];
+}
 
 

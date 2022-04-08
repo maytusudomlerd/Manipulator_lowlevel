@@ -198,25 +198,24 @@ void UARTsentACK(Protocol *uart,uint8_t ack){
 	uint8_t temp[] = { 0xFF, 0x02 , ack};
 	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
 }
-void UARTsentFeedback(Protocol *uart,uint8_t ack,float *jointconfig){
+void UARTsentFeedback(Protocol *uart,uint8_t ack,float *data,int lendata){
 	/*
 	 *
 	 * function the use to send set of package for acknowledge start or finish command
 	 *
 	 * */
-	uint8_t temp_feedback[8];
-	temp_feedback[0] = ((int16_t)(jointconfig[0] * 100) >> 8) & 0xFF;
-	temp_feedback[1] = (int16_t)(jointconfig[0] * 100) & 0xFF;
-	temp_feedback[2] = ((int16_t)(jointconfig[1] * 100) >> 8) & 0xFF;
-	temp_feedback[3] = (int16_t)(jointconfig[1] * 100) & 0xFF;
-	temp_feedback[4] = ((int16_t)(jointconfig[2] * 100) >> 8) & 0xFF;
-	temp_feedback[5] = (int16_t)(jointconfig[2] * 100) & 0xFF;
-	temp_feedback[6] = ((int16_t)(jointconfig[3] * 100) >> 8) & 0xFF;
-	temp_feedback[7] = (int16_t)(jointconfig[3] * 100) & 0xFF;
-
-	uint8_t temp[] = { 0xFF, 9 , ack , temp_feedback[0],temp_feedback[1],temp_feedback[2],
-			temp_feedback[3],temp_feedback[4],temp_feedback[5],temp_feedback[6],temp_feedback[7]};
-	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
+	uint8_t size_of_data = ( lendata ) * 2;
+	uint8_t temp_feedback[size_of_data + 3];
+	uint8_t j =0;
+	for(int i=3;i<size_of_data+3;i=i+2){
+		temp_feedback[i] = ((int16_t)(data[j] * 100) >> 8) & 0xFF;
+		temp_feedback[i+1] = (int16_t)(data[j] * 100) & 0xFF;
+		j++;
+	}
+	temp_feedback[0] = 0xFF;
+	temp_feedback[1] = size_of_data + 1;
+	temp_feedback[2] = ack;
+	mhainw_protocol_sentdata(uart,temp_feedback,sizeof(temp_feedback));
 
 }
 
