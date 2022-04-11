@@ -57,7 +57,7 @@ void IPK(float *X, float gramma, float *jointconfig)
   c = atan2(s2, s);
   jointconfig[0] = q1;
   jointconfig[1] = c;
-  jointconfig[2] = 405.0 - (X[3] + 180.05);
+  jointconfig[2] = -1*(405.0 - (X[3] + 180.05));
   jointconfig[3] = X[0] - (q1 + c);
 }
 

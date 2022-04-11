@@ -14,7 +14,6 @@ void mhainw_trajectory_init(Trajectory *traj,float delta_t){
 	traj->havetraj =0;
 }
 void mhainw_trajectory_generatetraj(Trajectory *traj,float *q_i,float *q_f){
-	float max_tk = 0;
 
 	for(int i=0;i<4;i++){
 		trajectory_findTk(&traj[i],q_i[i],q_f[i]);
@@ -60,7 +59,7 @@ void trajectory_findTk(Trajectory *traj,float q_i,float q_f){
 //	float maxspeedofjoint[4] = {300,1000,2500,300}; //pulse/sec
 //	float maxspeedofjoint[4] = {2.356,7.85,8.0,2.35}; //rad/sec
 //	float maxspeedofjoint[4] = {0.418,0.523,8.0,0.733};
-	float maxspeedofjoint[4] = {0.418*2,0.523*2,8.0*4,0.733*2};
+	float maxspeedofjoint[4] = {0.418*2,0.523*2,16.0*2,0.733*2};
 
 
 	while(flag){
@@ -85,13 +84,13 @@ void trajectory_findTk(Trajectory *traj,float q_i,float q_f){
 			flag = 0;
 		}
 	}
+	//reset T for next trajectory
+	if(joint == 3){
+		T = 1;
+	}
+	//update joint index
+	joint = (joint + 1) % 4;
 
-		//update joint index
-		joint = (joint + 1) % 4;
-		//reset T for next trajectory
-		if(joint == 3){
-			T = 1;
-		}
 }
 
 void mhainw_trajectory_updatetraj(Trajectory *traj)

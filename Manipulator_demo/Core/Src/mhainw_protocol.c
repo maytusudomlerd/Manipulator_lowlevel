@@ -219,4 +219,13 @@ void UARTsentFeedback(Protocol *uart,uint8_t ack,float *data,int lendata){
 
 }
 
+void UARTsentGripper(Protocol *uart,uint8_t inst){
+	uint8_t temp[4]= {0xFF,0x02,0,0};
+	temp[2] = inst;
+	int8_t sum = temp[1] + temp[2];
+	uint8_t checksum = ~sum & 0xFF;
+	temp[3] = checksum;
+	mhainw_protocol_sentdata(uart,temp,sizeof(temp));
+}
+
 

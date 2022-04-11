@@ -1,6 +1,8 @@
 import serial
 
+# ser = serial.Serial('/dev/tty.usbserial-142410', 256000, timeout=1)
 ser = serial.Serial('/dev/tty.usbmodem1424203', 256000, timeout=1)
+# tty.usbmodem1424203
 
 def checksum(data):
     return ~(sum(data)) & 0xff
@@ -142,8 +144,8 @@ def require_chessboard_position():
         ser.write(tx_buff)
 
 if __name__ == "__main__":
-    tx_sethome()
-    # tx_jog(axis='j1', step=-10 , type='j')
+    # tx_sethome()
+    tx_jog(axis='j3', step=10 , type='j')
     # tx_jog(axis='x', step=10, type='c')
     # tx_move(ref='current',type='j',position=[30,-60,0,0])
     # tx_move(ref='home',type='j',position=[0,0,0,0])

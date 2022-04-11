@@ -64,7 +64,7 @@
 
 #define DEGTORAD                     0.0174532925
 
-#define J1_OFFSETTOHOMECONFIGURATION 1637
+#define J1_OFFSETTOHOMECONFIGURATION 1676
 #define J2_OFFSETTOHOMECONFIGURATION -3401
 //#define J2_OFFSETTOHOMECONFIGURATION 62890
 #define J3_OFFSETTOHOMECONFIGURATION 0
@@ -111,7 +111,7 @@ float setpoint[4];   //target point in encoder unit(pulse)
 float taskconfig[4] = {0};  //now position in task space
 float jointconfig[4] = {0}; //now position in configuration space
 float tasksetpoint[4]; //target point in task space
-float jointreadysetpoint[4] = {1.30,-1.5709,0,0}; //target point in configuration space
+float jointreadysetpoint[4] = {1.04,-0.78,0,0}; //target point in configuration space
 float jointsetpoint[4] = {0}; //target point in configuration space
 float jointsubsetpoint[4] = {0};
 float jointvelocitysetpoint[4] = {0}; //target velocity in configuration space
@@ -129,7 +129,7 @@ Controller velocity_jointcontroller[4];
 Kalmanfilter kalmanjoint[4];
 Trajectory quinticTrajectory[4];
 
-uint8_t control_flag = 0;
+
 
 uint8_t Proximity_state[4];
 
@@ -138,11 +138,14 @@ float setpoint_test[2][4] = {{0, (J2_NEGATIVE_JOINTLIMIT)/2, (J3_UP_JOINTLIMIT),
 		                     {0,(J2_NEGATIVE_JOINTLIMIT)/2, -80, (J4_POSITIVE_JOINTLIMIT)/2}};
 
 uint8_t robot_feedback = 0;
-uint8_t initial = 1;
 uint32_t init_t = 0;
 
+uint8_t init_kalman = 1;
+uint8_t control_flag = 0;
+uint8_t grip = 0;
+uint8_t ungrip = 0;
 
-int num = 1;
+int num = 0;
 int map_indx = 1;
 float x,y;
 /* USER CODE END PV */
@@ -232,11 +235,11 @@ int main(void)
   //initial controller for case-cade control
   mhainw_control_init(&position_jointcontroller[0],20,0,0,50,300); //kp = 20
   mhainw_control_init(&position_jointcontroller[1],50,0,0,50,1000);  //kp=50
-  mhainw_control_init(&position_jointcontroller[2],10,0,0,50,2500);
+  mhainw_control_init(&position_jointcontroller[2],5,0,0,50,2500);
   mhainw_control_init(&position_jointcontroller[3],40,0,0,50,300);
   mhainw_control_init(&velocity_jointcontroller[0],100,0.001,50,300,300); //kp = 100 ki=0.001 kd =100
   mhainw_control_init(&velocity_jointcontroller[1],50,0.001,300,1000,1000); //kp= 50 ki=0.001
-  mhainw_control_init(&velocity_jointcontroller[2],50,0,01,2500,2500); //ki = 0.01
+  mhainw_control_init(&velocity_jointcontroller[2],50,0,1,2500,2500); //ki = 0.01
   mhainw_control_init(&velocity_jointcontroller[3],200,0.01,50,300,300); //ki=0.01
 
   mhainw_kalmanfilter_init(&kalmanjoint[0],0,-1,0,1,0,1,3000,0.0001);
@@ -254,30 +257,14 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
+  //manipulator set zero
   mhainw_robot_sethome();
 
-/* test trarj
-  for(int i=0;i<4;i++){
-	  jointsetpoint[i] = setpoint_test[0][i];
-  }
-  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
- */
-
-// /*test mapping position
-  chessboardtemptochessboard(num,&x,&y);
-  chessboardtorobot(x,y,0,tasksetpoint);
-  IPK(tasksetpoint,-1,jointsetpoint);
-  FPK(jointsetpoint,taskconfig);
-  jointsetpoint[2] = 0;
-  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-//  */
-
-  while (1)
-  {
-    /* USER CODE END WHILE */
-
-    /* USER CODE BEGIN 3 */
-	  if(initial){
+  //initial kalman filter
+  if(init_kalman){
+	  control_flag = 0;
+	  init_t = HAL_GetTick();
+	  while(init_kalman){
 		  if(!(HAL_GetTick() - init_t >= 2000)){
 			  for(joint =0;joint<4;joint++){
 				//read encoder
@@ -287,9 +274,69 @@ int main(void)
 				mhainw_kalmanfilter_updatekalman(&kalmanjoint[joint],jointconfig[joint]);
 			  }
 		  } else{
-			  initial = 0;
+			  init_kalman = 0;
 			  control_flag = 1;
 		  }
+	  }
+  }
+  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
+
+/* test trarj
+  for(int i=0;i<4;i++){
+	  jointsetpoint[i] = setpoint_test[0][i];
+  }
+  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
+ */
+
+ /*test mapping position
+  chessboardtemptochessboard(num,&x,&y);
+  chessboardtorobot(x,y,0,tasksetpoint);
+  IPK(tasksetpoint,-1,jointsetpoint);
+  jointsetpoint[2] = 0;
+  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
+  */
+
+  while (1)
+  {
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+
+	  if(grip){
+		  UARTsentGripper(&user,MHAINW_GRIPPER_GRIP);
+		  grip=0;
+	  }
+	  if(ungrip){
+		  UARTsentGripper(&user,MHAINW_GRIPPER_UNGRIP);
+		  ungrip=0;
+	  }
+
+	  /*test mapping position
+		if(num > 0){
+//			FPK(jointconfig,taskconfig);
+//			chessboardtemptochessboard(num,&x,&y);
+//			chessboardtorobot(x,y,0,tasksetpoint);
+//			IPK(tasksetpoint,-1,jointsetpoint);
+			pointinchessboardtomanipulator(num,jointsetpoint);
+			mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
+			if(num == 64){
+				num = 0;
+			}
+		}
+	  */
+
+	  if(HAL_GetTick() - read_timestamp >= 0.5){
+		  read_timestamp = HAL_GetTick();
+		  for(int joint=0;joint<4;joint++){
+			//read encoder
+			jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
+			//convert pulse to rad
+			jointconfig[joint] =  jointstate[joint] / radtopulse[joint];
+			//update kalman x1,x2
+			mhainw_kalmanfilter_updatekalman(&kalmanjoint[joint],jointconfig[joint]);
+		  }
+		  chessboardpos += mhainw_amt10_unwrap(&chessboardenc) ;
+		  chessboardrad = chessboardpos * CONVERT_CHESSBOARD_PULSETORAD;
 	  }
 
 	  if(control_flag ==1 ){
@@ -332,16 +379,9 @@ int main(void)
 						}
 						mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
 						 */
-
-//						/*test mapping position
-//						num = (num  + 1) % 64;
-						chessboardtemptochessboard(num,&x,&y);
-						chessboardtorobot(x,y,0,tasksetpoint);
-						IPK(tasksetpoint,-1,jointsetpoint);
-						FPK(jointsetpoint,taskconfig);
-						jointsetpoint[2] = 0;
+						num = (num + 1) % 64;
+						pointinchessboardtomanipulator(num,jointsetpoint);
 						mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-//						*/
 
 					}
 				}
@@ -375,10 +415,11 @@ int main(void)
 			  mhainw_command_statemachine(&user);
 			}
 	  }
-	  //robot feedback
+
+//	  robot feedback
 //	  if(robot_feedback){
 //		  if(HAL_GetTick() - feedback_timestamp >= 500){
-//			  UARTsentFeedback(&user, MHAINW_JOINT_FEEDBACK,jointconfig);
+//			  UARTsentFeedback(&user, MHAINW_JOINT_FEEDBACK,jointconfig,4);
 //		  }
 //	  }
   }
@@ -497,7 +538,7 @@ void mhainw_robot_sethome(){
 	for(int i=0;i<4;i++){
 		jointstate[i] = jointoffset[i];
 		jointconfig[i] = jointstate[i] / radtopulse[i];
-		jointsetpoint[i] = 0;
+		jointsetpoint[i] = jointreadysetpoint[i];
 	}
 
 }
@@ -514,7 +555,7 @@ void mhainw_robot_movetohome(){
 			mhainw_stepper_setspeed(&motors[0], 0);
 			sethome[0] = 1;
 		} else{
-			mhainw_stepper_setspeed(&motors[0], 150);
+			mhainw_stepper_setspeed(&motors[0], 200);
 		}
 		if(Proximity_state[1] == 1){
 			mhainw_stepper_setspeed(&motors[1], 0);
@@ -539,7 +580,7 @@ void mhainw_robot_movetohome(){
 
 void mhainw_command_statemachine(Protocol *uart){
 	static uint8_t set = 1;
-	uint8_t inst = uart->inst;
+	static uint8_t inst;
 	static uint8_t state = MHAINW_WAIT;
 	if(set){
 		state = uart->inst;
@@ -557,29 +598,35 @@ void mhainw_command_statemachine(Protocol *uart){
 		case MHAINW_JOG_CATESIAN:
 			UARTsentACK(uart, MHAINW_JOG_ACK);
 			jogcatesian(uart,jointsetpoint);
+			inst = MHAINW_JOG_ACK;
 			state = MHAINW_TRAJGEN;
 			break;
 
 		case MHAINW_JOG_JOINT:
 			UARTsentACK(uart, MHAINW_JOG_ACK);
 			jogjoint(uart,jointsetpoint);
+			inst = MHAINW_JOG_ACK;
 			state = MHAINW_TRAJGEN;
 			break;
 
 		case MAHINW_MOVE_CATESIAN :
 			UARTsentACK(uart, MHAINW_MOVE_ACK);
 			movecartesian(uart,jointsetpoint);
+			inst = MHAINW_MOVE_ACK;
 			state = MHAINW_TRAJGEN;
 			break;
 
 		case MHAINW_MOVE_JOINT:
 			UARTsentACK(uart, MHAINW_MOVE_ACK);
 			movejoint(uart,jointsetpoint);
+			inst = MHAINW_MOVE_ACK;
 			state = MHAINW_TRAJGEN;
 			break;
 
 		case MHAINW_MOVE_TASK:
 			UARTsentACK(uart, MHAINW_TASKMOVE_ACK);
+//			move();
+			inst = MHAINW_TASKMOVE_ACK;
 			//send gripper grip/ungrip
 			break;
 
@@ -606,13 +653,14 @@ void mhainw_command_statemachine(Protocol *uart){
 			if(uart->goal_reach[0] == 1 && uart->goal_reach[1] == 1 && uart->goal_reach[2] == 1 && uart->goal_reach[3] == 1){
 				uart->package_verify = 0;
 
-				if(inst == 2){
+				if(inst == MHAINW_JOG_ACK){
 					UARTsentFeedback(uart, MHAINW_JOG_ACK,jointconfig,4);
-				} else if(inst  == 3){
+				} else if(inst  == MHAINW_MOVE_ACK){
 					UARTsentFeedback(uart, MHAINW_MOVE_ACK,jointconfig,4);
 				}
 				//.....
 				set=1;
+				inst = 0;
 			}
 
 			break;

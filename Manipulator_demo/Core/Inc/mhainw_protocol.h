@@ -67,7 +67,7 @@ typedef enum{
 typedef struct{
 	UART_HandleTypeDef *handleuart;
 	uint8_t Rxbuffer[512];
-	uint8_t Txbuffer[1024];
+	uint8_t Txbuffer[512];
 	int8_t data[100];
 	uint8_t Txhead,Rxtail,Txtail;
 	uint8_t len;
@@ -89,4 +89,5 @@ void UARTsentERR(Protocol *uart,uint8_t errtype);
 void UARTsentACK(Protocol *uart,uint8_t ack);
 void UARTsendit(Protocol *uart);
 void UARTsentFeedback(Protocol *uart,uint8_t ack,float *data,int lendata);
+void UARTsentGripper(Protocol *uart,uint8_t inst);
 #endif /* INC_MHAINW_PROTOCOL_H_ */

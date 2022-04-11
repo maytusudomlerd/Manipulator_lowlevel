@@ -214,7 +214,8 @@ HAL_StatusTypeDef HAL_DMA_Init(DMA_HandleTypeDef *hdma)
   DMA_Base_Registers *regs_dma;
   BDMA_Base_Registers *regs_bdma;
 
-  /* Check the DMA peripheral handle */  if(hdma == NULL)
+  /* Check the DMA peripheral handle */
+  if(hdma == NULL)
   {
     return HAL_ERROR;
   }
