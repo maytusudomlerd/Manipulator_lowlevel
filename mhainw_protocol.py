@@ -143,17 +143,27 @@ def require_chessboard_position():
     if ser.is_open:
         ser.write(tx_buff)
 
+def task_move(pointfrom,pointto,action):
+    tx_buff = [0xff,0,0x40,pointfrom,pointto,action]
+    tx_buff[1] = len(tx_buff) - 1
+    tx_buff.append(checksum(tx_buff[1:]))
+    print(tx_buff)
+    
+    if ser.is_open:
+        ser.write(tx_buff)
 if __name__ == "__main__":
     # tx_sethome()
-    tx_jog(axis='j3', step=10 , type='j')
+    # tx_jog(axis='j3', step=10 , type='j')
     # tx_jog(axis='x', step=10, type='c')
     # tx_move(ref='current',type='j',position=[30,-60,0,0])
     # tx_move(ref='home',type='j',position=[0,0,0,0])
     # tx_move(ref='current',type='c',position=[-10,20,0,0])
+    
+    task_move(1,8,1)
 
     # require_manipulator_position()
     # require_chessboard_position()
-    print(Rx())
+    # print(Rx())
 
 
 

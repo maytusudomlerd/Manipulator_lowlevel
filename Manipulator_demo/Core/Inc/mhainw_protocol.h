@@ -24,6 +24,8 @@
 #define MAHINW_MOVE_CATESIAN                  0x30
 #define MHAINW_MOVE_JOINT                     0x31
 #define MHAINW_MOVE_TASK                      0x40
+#define MAHINW_MOVE_SETPOINTGEN               0x41
+#define MHAINW_MOVE_SETPOINTUPDATE            0x42
 #define MHAINW_GRIPPER_GRIP                   0x50
 #define MHAINW_GRIPPER_UNGRIP                 0x51
 #define MHAINW_REQUIRE_FEEDBACK_ALL           0x60
