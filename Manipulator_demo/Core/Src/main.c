@@ -64,11 +64,10 @@
 
 #define DEGTORAD                     0.0174532925
 
-#define J1_OFFSETTOHOMECONFIGURATION 1676
-#define J2_OFFSETTOHOMECONFIGURATION -3401
-//#define J2_OFFSETTOHOMECONFIGURATION 62890
+#define J1_OFFSETTOHOMECONFIGURATION 1652
+#define J2_OFFSETTOHOMECONFIGURATION -3464
 #define J3_OFFSETTOHOMECONFIGURATION 0
-#define J4_OFFSETTOHOMECONFIGURATION 6427
+#define J4_OFFSETTOHOMECONFIGURATION 6427 //5932
 
 #define J1_POSITIVE_JOINTLIMIT 105 * DEGTORAD
 #define J1_NEGATIVE_JOINTLIMIT -1 * J1_POSITIVE_JOINTLIMIT
@@ -115,6 +114,7 @@ float jointreadysetpoint[4] = {1.04,-0.78,0,0}; //target point in configuration 
 float jointsetpoint[4] = {0}; //target point in configuration space
 float jointsubsetpoint[4] = {0};
 float jointvelocitysetpoint[4] = {0}; //target velocity in configuration space
+float controloutput[4];
 
 float temp[4];
 int16_t goal;
@@ -134,8 +134,8 @@ Trajectory quinticTrajectory[4];
 uint8_t Proximity_state[4];
 
 uint8_t setpoint_test_indx[4] = {0};
-float setpoint_test[2][4] = {{0, (J2_NEGATIVE_JOINTLIMIT)/2, (J3_UP_JOINTLIMIT), (J4_NEGATIVE_JOINTLIMIT)/2},
-		                     {0,(J2_NEGATIVE_JOINTLIMIT)/2, -80, (J4_POSITIVE_JOINTLIMIT)/2}};
+float setpoint_test[2][4] = {{0, (J2_POSITIVE_JOINTLIMIT)/2, 0, 0},
+		                     {0,(J2_NEGATIVE_JOINTLIMIT)/2, 0, 0}};
 
 uint8_t robot_feedback = 0;
 uint32_t init_t = 0;
@@ -226,24 +226,15 @@ int main(void)
   mhainw_amt10_init(&encoders[3], &htim4);
   mhainw_amt10_init(&chessboardenc, &htim8);
 
-  //initial controller for only position control
-  mhainw_control_init(&pid_position[0],3500,0.01,100,600,600);
-  mhainw_control_init(&pid_position[1],1500,0.001,50,1000,1000);
-  mhainw_control_init(&pid_position[2],1000,0.01,0,300,2500);
-  mhainw_control_init(&pid_position[3],1000,0,0,300,600);
 
   //initial controller for case-cade control
-  mhainw_control_init(&position_jointcontroller[0],20,0,0,50,300); //kp = 20
-  mhainw_control_init(&position_jointcontroller[1],50,0,0,50,1000);  //kp=50
-  mhainw_control_init(&position_jointcontroller[2],5,0,0,50,2500);
-  mhainw_control_init(&position_jointcontroller[3],40,0,0,50,300);
-  mhainw_control_init(&velocity_jointcontroller[0],100,0.001,50,300,300); //kp = 100 ki=0.001 kd =100
-  mhainw_control_init(&velocity_jointcontroller[1],50,0.001,300,1000,1000); //kp= 50 ki=0.001
-  mhainw_control_init(&velocity_jointcontroller[2],50,0,1,2500,2500); //ki = 0.01
-  mhainw_control_init(&velocity_jointcontroller[3],200,0.01,50,300,300); //ki=0.01
+  mhainw_control_init(&position_jointcontroller[0],3000,0.006,100,300,600); //kp = 20 0 0
+  mhainw_control_init(&position_jointcontroller[1],3500,0.1,2000,500,1000);  //kp=50 0.07 0
+  mhainw_control_init(&position_jointcontroller[2],1000,0.01,0,1500,2500); // 5 0 0
+  mhainw_control_init(&position_jointcontroller[3],2000,0,0,300,600); // 40 0 0
 
   mhainw_kalmanfilter_init(&kalmanjoint[0],0,-1,0,1,0,1,3000,0.0001);
-  mhainw_kalmanfilter_init(&kalmanjoint[1],0,0,0,0,0,0.0147,kalman_Q,kalman_R);
+  mhainw_kalmanfilter_init(&kalmanjoint[1],0,2.5,0,1,0,1,1000,0.0001);
   mhainw_kalmanfilter_init(&kalmanjoint[2],0,0,0,0,0,0.0147,kalman_Q,kalman_R);
   mhainw_kalmanfilter_init(&kalmanjoint[3],0,0,0,0,0,0.0147,kalman_Q,kalman_R);
 
@@ -260,12 +251,12 @@ int main(void)
   //manipulator set zero
   mhainw_robot_sethome();
 
-//  initial kalman filter
+  //initial kalman filter
   if(init_kalman){
 	  control_flag = 0;
 	  init_t = HAL_GetTick();
 	  while(init_kalman){
-		  if(!(HAL_GetTick() - init_t >= 2000)){
+		  if(!(HAL_GetTick() - init_t >= 1000)){
 			  for(joint =0;joint<4;joint++){
 				//read encoder
 				jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
@@ -280,7 +271,6 @@ int main(void)
 	  }
   }
   mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-
 /* test trarj
   for(int i=0;i<4;i++){
 	  jointsetpoint[i] = setpoint_test[0][i];
@@ -387,31 +377,29 @@ int main(void)
 				}
 
 				//check joint limit
-				if(jointsetpoint[joint] >= positive_jointlimit[joint] * 0.8){
-					jointsetpoint[joint] = positive_jointlimit[joint] * 0.8;
+				if(jointsetpoint[joint] >= positive_jointlimit[joint]){
+					jointsetpoint[joint] = positive_jointlimit[joint];
 				}
-			    if(jointsetpoint[joint] <= negative_jointlimit[joint] * 0.8){
-				  jointsetpoint[joint] = negative_jointlimit[joint] * 0.8;
+			    if(jointsetpoint[joint] <= negative_jointlimit[joint]){
+				  jointsetpoint[joint] = negative_jointlimit[joint];
 			    }
 
 			    //control
 			    if(quinticTrajectory[joint].havetraj == 1){
 				//update position control
-				mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsetpoint[joint], kalmanjoint[joint].x1);
+				mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsetpoint[joint], jointconfig[joint]);
+
+				controloutput[joint] = (position_jointcontroller[joint].output + jointvelocitysetpoint[joint]) - kalmanjoint[joint].x2;
+				mhainw_stepper_setspeed(&motors[joint], controloutput[joint]);
 
 				//controller with tune parameter for only position control
 //				mhainw_control_controllerupdate(&pid_position[joint], jointsetpoint[joint], kalmanjoint[joint].x1);
 
-				//update velocity control
-				mhainw_control_controllerupdate(&velocity_jointcontroller[joint],jointvelocitysetpoint[joint] + position_jointcontroller[joint].output , kalmanjoint[joint].x2);
-
-				mhainw_stepper_setspeed(&motors[joint], velocity_jointcontroller[joint].output);
-//				mhainw_stepper_setspeed(&motors[joint], pid_position[joint].output);
 			    }
 
 			    else {
-			    	mhainw_control_controllerupdate(&pid_position[joint], jointsetpoint[joint], kalmanjoint[joint].x1);
-					mhainw_stepper_setspeed(&motors[joint], pid_position[joint].output);
+			    	mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsetpoint[joint], kalmanjoint[joint].x1);
+					mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
 			    }
 
 			}
@@ -494,7 +482,7 @@ void mhainw_robot_sethome(){
 	uint8_t sethome[3] = {0};
 	float jointoffset[4] = {J1_OFFSETTOHOMECONFIGURATION,J2_OFFSETTOHOMECONFIGURATION,J3_OFFSETTOHOMECONFIGURATION,J4_OFFSETTOHOMECONFIGURATION};
 	//offset
-	mhainw_stepper_setspeed(&motors[0], -100);
+	mhainw_stepper_setspeed(&motors[0], -150);
 	mhainw_stepper_setspeed(&motors[1], 300);
 	mhainw_stepper_setspeed(&motors[2], -1000);
 	mhainw_stepper_setspeed(&motors[3], -1000);
@@ -523,7 +511,7 @@ void mhainw_robot_sethome(){
 			mhainw_stepper_setspeed(&motors[0], 0);
 			sethome[0] = 1;
 		} else{
-			mhainw_stepper_setspeed(&motors[0], 100);
+			mhainw_stepper_setspeed(&motors[0], 150);
 		}
 		if(Proximity_state[1] == 1){
 			mhainw_stepper_setspeed(&motors[1], 0);
@@ -593,7 +581,7 @@ void mhainw_command_statemachine(Protocol *uart){
 	static uint8_t end_path = 0;
 	static float path_setpoint[24];
 	static uint8_t action;
-	static uint8_t path_no = 0;
+	static int8_t path_no = -1;
 
 	if(set){
 		state = uart->inst;
@@ -645,8 +633,6 @@ void mhainw_command_statemachine(Protocol *uart){
 			if(action == 1){
 				float temp_to[4];
 				float temp_from[4];
-				uint8_t from = uart->data[0];
-				uint8_t to = uart->data[1];
 				pointinchessboardtomanipulator(uart->data[0],temp_from); //from
 				pointinchessboardtomanipulator(uart->data[1],temp_to); //to
 				//set x y position of each via point
@@ -659,12 +645,12 @@ void mhainw_command_statemachine(Protocol *uart){
 				memcpy(&path_setpoint[16],temp_to,sizeof(temp_to));
 				memcpy(&path_setpoint[20],temp_to,sizeof(temp_to));
 				//set z distance in each via point
-				path_setpoint[2] = -50;
-				path_setpoint[6] = -100;
-				path_setpoint[10] = -50;
-				path_setpoint[14] = -50;
-				path_setpoint[18] = -100;
-				path_setpoint[22] = -50;
+				path_setpoint[2] = 0;
+				path_setpoint[6] = -110;
+				path_setpoint[10] = 0;
+				path_setpoint[14] = 0;
+				path_setpoint[18] = -110;
+				path_setpoint[22] = 0;
 			}
 
 //			else if(action == 2){
@@ -673,11 +659,12 @@ void mhainw_command_statemachine(Protocol *uart){
 			state = MHAINW_MOVE_SETPOINTUPDATE;
 
 		case MHAINW_MOVE_SETPOINTUPDATE:
-			memcpy(jointsetpoint,&path_setpoint[path_no * 4],sizeof(jointsetpoint));
-			path_no = (path_no + 1) % 6;
-			if(path_no == 0){
+			path_no = (path_no + 1)%7;
+			if(path_no == 6){
 				end_path = 1;
 				memcpy(jointsetpoint,jointreadysetpoint,sizeof(jointsetpoint));
+			} else{
+				memcpy(jointsetpoint,&path_setpoint[path_no * 4],sizeof(jointsetpoint));
 			}
 			state = MHAINW_TRAJGEN;
 			inst = MHAINW_TASKMOVE_ACK;
@@ -713,6 +700,13 @@ void mhainw_command_statemachine(Protocol *uart){
 				} else if(inst == MHAINW_TASKMOVE_ACK){
 					state = MHAINW_MOVE_SETPOINTUPDATE;
 					uart->package_verify = 1;
+					if(path_no == 1){ //grip
+						UARTsentGripper(&user,MHAINW_GRIPPER_GRIP);
+						HAL_Delay(1000);
+					} else if(path_no == 4){ //ungrip
+						UARTsentGripper(&user,MHAINW_GRIPPER_UNGRIP);
+						HAL_Delay(1000);
+					}
 					if(end_path){
 						end_path = 0;
 						set=1;
