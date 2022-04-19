@@ -108,7 +108,7 @@ void chessboardtorobot(float xp, float yp, float chessboard_position, float *tas
   float b_p_tmp;
   float eulShaped_idx_2;
   float p_tmp;
-  static float chessboard_offset = 360.0;
+  static float chessboard_offset = 375.0; //360
   p_tmp = cos(chessboard_position);
   b_p_tmp = sin(chessboard_position);
   eulShaped_idx_2 = atan2(b_p_tmp, p_tmp);
@@ -117,8 +117,8 @@ void chessboardtorobot(float xp, float yp, float chessboard_position, float *tas
   }
   taskconfig[0] = eulShaped_idx_2;
   taskconfig[1] = (chessboard_offset + xp * p_tmp) - yp * b_p_tmp;
-  taskconfig[2] = yp * p_tmp + xp * b_p_tmp;
-  taskconfig[3] = 100; //-80
+  taskconfig[2] = yp * p_tmp + xp * b_p_tmp + 5;
+  taskconfig[3] = 100;
 
 //  memcpy(taskconfig,X,strlen(X)+1);
 }
@@ -152,12 +152,19 @@ void chessboardtemptochessboard(int target,float *x_position,float *y_position){
     *y_position = y;
 }
 
+//add chessboard enc
 void pointinchessboardtomanipulator(int targetpoint,float *jointsetpoint){
 	float chessboard_x,chessboard_y;
 	float temp_tasksetpoint[4] = {0};
 	float temp_jointsetpoint[4] = {0};
 	chessboardtemptochessboard(targetpoint,&chessboard_x,&chessboard_y);
 	chessboardtorobot(chessboard_x,chessboard_y,0,temp_tasksetpoint);
+	/* add rotage z
+	 * if Rz is more than joint limit Rz = Rz+-1.57 rad
+	if(temp_tasksetpoint[0] > -105 || temp_tasksetpoint[0] < -105 ){
+		temp_tasksetpoint[0] += 90;
+	}
+	*/
 	IPK(temp_tasksetpoint,-1,temp_jointsetpoint);
 	jointsetpoint[0] = temp_jointsetpoint[0];
 	jointsetpoint[1] = temp_jointsetpoint[1];

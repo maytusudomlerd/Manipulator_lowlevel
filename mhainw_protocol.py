@@ -159,7 +159,7 @@ if __name__ == "__main__":
     # tx_move(ref='home',type='j',position=[0,0,0,0])
     # tx_move(ref='current',type='c',position=[-10,20,0,0])
     
-    task_move(49,57,1)
+    task_move(5,56,1)
 
     # require_manipulator_position()
     # require_chessboard_position()

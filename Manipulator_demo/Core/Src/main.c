@@ -292,24 +292,14 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-	  if(grip){
-		  UARTsentGripper(&user,MHAINW_GRIPPER_GRIP);
-		  grip=0;
-	  }
-	  if(ungrip){
-		  UARTsentGripper(&user,MHAINW_GRIPPER_UNGRIP);
-		  ungrip=0;
-	  }
-
-	  /*test mapping position
+//	  /*test mapping position
 		if(num > 0){
 			pointinchessboardtomanipulator(num,jointsetpoint);
+			jointsetpoint[2] = 50;
 			mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-			if(num == 64){
-				num = 0;
-			}
+			num = 0;
 		}
-	  */
+//	  */
 
 	  //update robot position 2000 hz
 	  if(HAL_GetTick() - read_timestamp >= 0.5){
@@ -321,6 +311,7 @@ int main(void)
 			jointconfig[joint] =  jointstate[joint] / radtopulse[joint];
 			//update kalman x1,x2
 			mhainw_kalmanfilter_updatekalman(&kalmanjoint[joint],jointconfig[joint]);
+//			FPK(jointconfig,taskconfig);
 		  }
 		  chessboardpos += mhainw_amt10_unwrap(&chessboardenc) ;
 		  chessboardrad = chessboardpos * CONVERT_CHESSBOARD_PULSETORAD;
@@ -328,20 +319,21 @@ int main(void)
 
 	  if(control_flag ==1 ){
 
-		  //update robot position 2000 hz
-		  if(HAL_GetTick() - read_timestamp >= 0.5){
-			  read_timestamp = HAL_GetTick();
-			  for(int joint=0;joint<4;joint++){
-				//read encoder
-				jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
-				//convert pulse to rad
-				jointconfig[joint] =  jointstate[joint] / radtopulse[joint];
-				//update kalman x1,x2
-				mhainw_kalmanfilter_updatekalman(&kalmanjoint[joint],jointconfig[joint]);
-			  }
-			  chessboardpos += mhainw_amt10_unwrap(&chessboardenc) ;
-			  chessboardrad = chessboardpos * CONVERT_CHESSBOARD_PULSETORAD;
-		  }
+//		  //update robot position 2000 hz
+//		  if(HAL_GetTick() - read_timestamp >= 0.5){
+//			  read_timestamp = HAL_GetTick();
+//			  for(int joint=0;joint<4;joint++){
+//				//read encoder
+//				jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
+//				//convert pulse to rad
+//				jointconfig[joint] =  jointstate[joint] / radtopulse[joint];
+//				//update kalman x1,x2
+//				mhainw_kalmanfilter_updatekalman(&kalmanjoint[joint],jointconfig[joint]);
+//
+//			  }
+//			  chessboardpos += mhainw_amt10_unwrap(&chessboardenc) ;
+//			  chessboardrad = chessboardpos * CONVERT_CHESSBOARD_PULSETORAD;
+//		  }
 
 		  //update control loop 1000 hz
 		  if(HAL_GetTick() - timestamp >= 1){
