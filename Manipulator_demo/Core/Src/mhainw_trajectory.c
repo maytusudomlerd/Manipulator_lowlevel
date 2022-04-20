@@ -59,7 +59,7 @@ void trajectory_findTk(Trajectory *traj,float q_i,float q_f){
 //	float maxspeedofjoint[4] = {300,1000,2500,300}; //pulse/sec
 //	float maxspeedofjoint[4] = {2.356,7.85,8.0,2.35}; //rad/sec
 //	float maxspeedofjoint[4] = {0.418,0.523,8.0,0.733};
-	float maxspeedofjoint[4] = {0.618,0.833,30.0,0.833};
+	float maxspeedofjoint[4] = {0.418,0.633,30.0,0.833};
 
 
 	while(flag){

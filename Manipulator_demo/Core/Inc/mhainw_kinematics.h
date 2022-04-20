@@ -11,6 +11,17 @@
 #include "math.h"
 #include "string.h"
 
+#define DEGTORAD                     0.0174532925
+
+#define J1_POSITIVE_JOINTLIMIT 105 * DEGTORAD
+#define J1_NEGATIVE_JOINTLIMIT -1 * J1_POSITIVE_JOINTLIMIT
+#define J2_POSITIVE_JOINTLIMIT 160 * DEGTORAD
+#define J2_NEGATIVE_JOINTLIMIT -1 * J2_POSITIVE_JOINTLIMIT
+#define J3_UP_JOINTLIMIT 0
+#define J3_DOWN_JOINTLIMIT -135.0
+#define J4_POSITIVE_JOINTLIMIT 105 * DEGTORAD
+#define J4_NEGATIVE_JOINTLIMIT -1 * J4_POSITIVE_JOINTLIMIT
+
 void FPK(float *q,float *taskconfig);
 void IPK(float *X, float gramma, float *jointconfig);
 void IVK(float *q, float *dX, float *dq);

@@ -117,7 +117,7 @@ void chessboardtorobot(float xp, float yp, float chessboard_position, float *tas
   }
   taskconfig[0] = eulShaped_idx_2;
   taskconfig[1] = (chessboard_offset + xp * p_tmp) - yp * b_p_tmp;
-  taskconfig[2] = yp * p_tmp + xp * b_p_tmp + 5;
+  taskconfig[2] = yp * p_tmp + xp * b_p_tmp;
   taskconfig[3] = 100;
 
 //  memcpy(taskconfig,X,strlen(X)+1);
@@ -154,18 +154,41 @@ void chessboardtemptochessboard(int target,float *x_position,float *y_position){
 
 //add chessboard enc
 void pointinchessboardtomanipulator(int targetpoint,float *jointsetpoint){
+	int can_reach[4] = {0};
+	float i=1.57;
+	float positive_jointlimit[4] = {J1_POSITIVE_JOINTLIMIT, J2_POSITIVE_JOINTLIMIT, J3_UP_JOINTLIMIT, J4_POSITIVE_JOINTLIMIT};
+	float negative_jointlimit[4] = {J1_NEGATIVE_JOINTLIMIT, J2_NEGATIVE_JOINTLIMIT, J3_DOWN_JOINTLIMIT, J4_NEGATIVE_JOINTLIMIT};
 	float chessboard_x,chessboard_y;
 	float temp_tasksetpoint[4] = {0};
 	float temp_jointsetpoint[4] = {0};
 	chessboardtemptochessboard(targetpoint,&chessboard_x,&chessboard_y);
 	chessboardtorobot(chessboard_x,chessboard_y,0,temp_tasksetpoint);
-	/* add rotage z
-	 * if Rz is more than joint limit Rz = Rz+-1.57 rad
-	if(temp_tasksetpoint[0] > -105 || temp_tasksetpoint[0] < -105 ){
-		temp_tasksetpoint[0] += 90;
-	}
-	*/
 	IPK(temp_tasksetpoint,-1,temp_jointsetpoint);
+
+	while(1){
+
+		IPK(temp_tasksetpoint,-1,temp_jointsetpoint);
+		for(int i=0;i<4;i++){
+			if(temp_jointsetpoint[i] >= positive_jointlimit[i] || temp_jointsetpoint[i] <= negative_jointlimit[i]){
+				can_reach[i] = 0;
+			}
+			else{
+				can_reach[i] = 1;
+			}
+		}
+		if(can_reach[0] == 1 && can_reach[1] == 1 && can_reach[2] == 1 && can_reach[3] == 1){
+			break;
+		} else{
+			if(temp_tasksetpoint[0] > 0){
+				temp_tasksetpoint[0] -= i;
+			}else{
+				temp_tasksetpoint[0] += i;
+			}
+		}
+		i += 1.57 ;
+
+	}
+
 	jointsetpoint[0] = temp_jointsetpoint[0];
 	jointsetpoint[1] = temp_jointsetpoint[1];
 	jointsetpoint[2] = temp_jointsetpoint[2];
