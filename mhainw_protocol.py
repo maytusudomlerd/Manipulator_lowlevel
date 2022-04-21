@@ -155,11 +155,11 @@ if __name__ == "__main__":
     # tx_sethome()
     # tx_jog(axis='j3', step=10 , type='j')
     # tx_jog(axis='x', step=10, type='c')
-    # tx_move(ref='current',type='j',position=[30,-60,0,0])
+    # tx_move(ref='current',type='j',position=[0,0,100,0])
     # tx_move(ref='home',type='j',position=[0,0,0,0])
     # tx_move(ref='current',type='c',position=[-10,20,0,0])
     
-    task_move(1,25,2)
+    task_move(1,8,1)
 
     # require_manipulator_position()
     # require_chessboard_position()

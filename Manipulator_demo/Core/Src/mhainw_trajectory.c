@@ -43,12 +43,11 @@ void trajectory_generateTrajCoef(Trajectory *traj,float q_i,float q_f){
 	traj->c3 = -(20 * q_i -20 * q_f + 8 * T * dq_f +12 * T * dq_i - (ddq_f * T_pow2)+(3 * ddq_i * T_pow2))/(2 * T_pow3);
 	traj->c4 = (30 * q_i - 30 * q_f + 14 * T * dq_f+ 16 * T * dq_i-(2 * ddq_f * T_pow2) + (3 * ddq_i * T_pow2))/(2 * T_pow4);
 	traj->c5 = -(12 * q_i- 12 * q_f+ 6 * T * dq_f + 6 * T * dq_i-(ddq_f * T_pow2)+(ddq_i * T_pow2))/(2 * T_pow5);
-//	traj->Vmax = (((((60.0 * q_f - 60.0 * q_i) - (14.0 * T * dq_f)) - 14.0 * T * dq_i) + ddq_f * traj->c5) - ddq_i * traj->c5) / (32.0 * T);
 	traj->t = 0;
 	traj->havetraj =1;
 }
 void trajectory_findTk(Trajectory *traj,float q_i,float q_f){
-	static float T = 1.0;
+	static float T = 4.0;
 	float T_pow2;
 	float dq_i = 0;
 	float dq_f = 0;
@@ -56,11 +55,7 @@ void trajectory_findTk(Trajectory *traj,float q_i,float q_f){
 	float ddq_f = 0;
 	int flag = 1;
 	static int joint = 0;
-//	float maxspeedofjoint[4] = {300,1000,2500,300}; //pulse/sec
-//	float maxspeedofjoint[4] = {2.356,7.85,8.0,2.35}; //rad/sec
-//	float maxspeedofjoint[4] = {0.418,0.523,8.0,0.733};
-	float maxspeedofjoint[4] = {0.418,0.633,30.0,0.833};
-
+	float maxspeedofjoint[4] = {0.418,0.633,30.0,0.933};
 
 	while(flag){
 		T_pow2 = T * T;
@@ -86,7 +81,7 @@ void trajectory_findTk(Trajectory *traj,float q_i,float q_f){
 	}
 	//reset T for next trajectory
 	if(joint == 3){
-		T = 1;
+		T = 4;
 	}
 	//update joint index
 	joint = (joint + 1) % 4;

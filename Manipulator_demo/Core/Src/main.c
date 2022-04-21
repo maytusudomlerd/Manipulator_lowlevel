@@ -219,8 +219,8 @@ int main(void)
 
 
   //initial controller for case-cade control
-  mhainw_control_init(&position_jointcontroller[0],2500,0.06,100,300,600); //kp = 20 0 0
-  mhainw_control_init(&position_jointcontroller[1],2500,0.1,2000,500,1000);  //kp=50 0.07 0
+  mhainw_control_init(&position_jointcontroller[0],2000,0.01,0,300,600); //kp = 20 0 0
+  mhainw_control_init(&position_jointcontroller[1],2000,0.1,500,500,1000);  //kp=50 0.07 0
   mhainw_control_init(&position_jointcontroller[2],1000,0.01,0,1500,2500); // 5 0 0
   mhainw_control_init(&position_jointcontroller[3],2000,0.06,0,300,600); // 40 0 0
 
@@ -284,7 +284,7 @@ int main(void)
 
 //	  /*test mapping position
 		if(num > 0){
-			pointinchessboardtomanipulator(num,jointsetpoint);
+			pointinchessboardtomanipulator(num,0,jointsetpoint);
 			mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
 			num = 0;
 		}
@@ -447,7 +447,7 @@ void mhainw_robot_sethome(){
 	uint8_t sethome[3] = {0};
 	float jointoffset[4] = {J1_OFFSETTOHOMECONFIGURATION,J2_OFFSETTOHOMECONFIGURATION,J3_OFFSETTOHOMECONFIGURATION,J4_OFFSETTOHOMECONFIGURATION};
 	//offset
-	mhainw_stepper_setspeed(&motors[0], -150);
+	mhainw_stepper_setspeed(&motors[0], -130);
 	mhainw_stepper_setspeed(&motors[1], 300);
 	mhainw_stepper_setspeed(&motors[2], -1000);
 	mhainw_stepper_setspeed(&motors[3], -1000);
@@ -476,7 +476,7 @@ void mhainw_robot_sethome(){
 			mhainw_stepper_setspeed(&motors[0], 0);
 			sethome[0] = 1;
 		} else{
-			mhainw_stepper_setspeed(&motors[0], 150);
+			mhainw_stepper_setspeed(&motors[0], 130);
 		}
 		if(Proximity_state[1] == 1){
 			mhainw_stepper_setspeed(&motors[1], 0);
@@ -502,41 +502,6 @@ void mhainw_robot_sethome(){
 
 }
 
-void mhainw_robot_movetohome(){
-	uint8_t sethome[3] = {0};
-	mhainw_stepper_setspeed(&motors[2], -1000);
-	HAL_Delay(500);
-	mhainw_stepper_setspeed(&motors[2], 0);
-	//state 2 : move to home position
-	while(sethome[0] != 1 || sethome[1] !=1 || sethome[2] != 1 || sethome[3] != 1){
-
-		if(Proximity_state[0] == 1){
-			mhainw_stepper_setspeed(&motors[0], 0);
-			sethome[0] = 1;
-		} else{
-			mhainw_stepper_setspeed(&motors[0], 200);
-		}
-		if(Proximity_state[1] == 1){
-			mhainw_stepper_setspeed(&motors[1], 0);
-			sethome[1] = 1;
-		} else {
-			mhainw_stepper_setspeed(&motors[1], -500);
-		}
-		if(Proximity_state[2] == 1){
-			mhainw_stepper_setspeed(&motors[2], 0);
-			sethome[2] = 1;
-		} else{
-			mhainw_stepper_setspeed(&motors[2], 1000);
-		}
-		if(Proximity_state[2] == 1){
-			mhainw_stepper_setspeed(&motors[3], 0);
-			sethome[3] = 1;
-		} else{
-			mhainw_stepper_setspeed(&motors[3], 500);
-		}
-	}
-}
-
 void mhainw_command_statemachine(Protocol *uart){
 	static uint8_t set = 1;
 	static uint8_t inst;
@@ -547,7 +512,6 @@ void mhainw_command_statemachine(Protocol *uart){
 	static float path_setpoint[24];
 	static uint8_t action;
 	static int8_t path_no = -1;
-	static int8_t move = 0;
 	if(set){
 		state = uart->inst;
 		set=0;
@@ -591,62 +555,69 @@ void mhainw_command_statemachine(Protocol *uart){
 
 		case MHAINW_MOVE_TASK:
 			UARTsentACK(uart, MHAINW_TASKMOVE_ACK);
+
+			static float temp_to[4];
+			static float temp_from[4];
+			static int8_t from_rook,from_king,to_rook,to_king;
 			action = uart->data[2];
+
+			if(action == 1){
+				pointinchessboardtomanipulator(uart->data[0],0,temp_from); //from   chessboardrad
+				pointinchessboardtomanipulator(uart->data[1],0,temp_to);   //to     chessboardrad
+			}
+			else if(action == 2){
+				pointinchessboardtomanipulator(uart->data[1],0,temp_from);
+				memcpy(temp_to,jointreadysetpoint,sizeof(jointreadysetpoint));
+			}
+			else if(action == 3){
+				from_king = uart->data[0];
+				from_rook = uart->data[1];
+				if(from_king > from_rook){
+					to_rook = from_king - 1;
+					to_king = from_king - 2;
+				} else if(from_rook > from_king){
+					to_rook = from_king + 1;
+					to_king = from_king + 2;
+				}
+				pointinchessboardtomanipulator(from_king,0,temp_from); //from chessboardrad
+				pointinchessboardtomanipulator(to_king,0,temp_to); //to chessboardrad
+			}
 			state = MHAINW_MOVE_SETPOINTGEN;
 
 		case MHAINW_MOVE_SETPOINTGEN:
-			if(action == 1){
-				float temp_to[4];
-				float temp_from[4];
-				pointinchessboardtomanipulator(uart->data[0],temp_from); //from
-				pointinchessboardtomanipulator(uart->data[1],temp_to); //to
-				//set x y position of each via point
-				//from
-				memcpy(&path_setpoint[0],temp_from,sizeof(temp_from));
-				memcpy(&path_setpoint[4],temp_from,sizeof(temp_from));
-				memcpy(&path_setpoint[8],temp_from,sizeof(temp_from));
-				//to
-				memcpy(&path_setpoint[12],temp_to,sizeof(temp_to));
-				memcpy(&path_setpoint[16],temp_to,sizeof(temp_to));
-				memcpy(&path_setpoint[20],temp_to,sizeof(temp_to));
-				//set z distance in each via point
-				path_setpoint[2] = 0;
-				path_setpoint[6] = -110;
-				path_setpoint[10] = 0;
-				path_setpoint[14] = 0;
-				path_setpoint[18] = -110;
-				path_setpoint[22] = 0;
+
+			memcpy(&path_setpoint[0],temp_from,sizeof(temp_from));
+			memcpy(&path_setpoint[4],temp_from,sizeof(temp_from));
+			memcpy(&path_setpoint[8],temp_from,sizeof(temp_from));
+			memcpy(&path_setpoint[12],temp_to,sizeof(temp_to));
+			memcpy(&path_setpoint[16],temp_to,sizeof(temp_to));
+			memcpy(&path_setpoint[20],temp_to,sizeof(temp_to));
+			path_setpoint[2] = 0;
+			path_setpoint[6] = -120;
+			path_setpoint[10] = 0;
+			path_setpoint[14] = 0;
+			path_setpoint[18] = -120;
+			path_setpoint[22] = 0;
+
+			if(action == 2){
+				path_setpoint[18] = -50;
+				pointinchessboardtomanipulator(uart->data[0],0,temp_from); //from   chessboardrad
+				pointinchessboardtomanipulator(uart->data[1],0,temp_to);   //to     chessboardrad
+			}
+			else if(action == 3){
+				pointinchessboardtomanipulator(from_rook,0,temp_from); //from chessboardrad
+				pointinchessboardtomanipulator(to_rook,0,temp_to); //to chessboardrad
 			}
 
-			else if(action == 2){
-				float temp_from[4];
-				float temp_to[4];
-				pointinchessboardtomanipulator(uart->data[0],temp_from); //from
-				pointinchessboardtomanipulator(uart->data[1],temp_to); //from
-				//set x y position of each via point
-				//from
-				memcpy(&path_setpoint[0],temp_to,sizeof(temp_to));
-				memcpy(&path_setpoint[4],temp_to,sizeof(temp_to));
-				memcpy(&path_setpoint[8],temp_to,sizeof(temp_to));
-				//to
-				memcpy(&path_setpoint[12],jointreadysetpoint,sizeof(jointreadysetpoint));
-				memcpy(&path_setpoint[16],jointreadysetpoint,sizeof(jointreadysetpoint));
-				memcpy(&path_setpoint[20],jointreadysetpoint,sizeof(jointreadysetpoint));
-				//set z distance in each via point
-				path_setpoint[2] = 0;
-				path_setpoint[6] = -110;
-				path_setpoint[10] = 0;
-				path_setpoint[14] = 0;
-				path_setpoint[18] = 0;
-				path_setpoint[22] = 0;
-			}
 			state = MHAINW_MOVE_SETPOINTUPDATE;
 
 		case MHAINW_MOVE_SETPOINTUPDATE:
 			path_no = (path_no + 1)%7;
 			if(path_no == 6){
 				end_path = 1;
-				memcpy(jointsetpoint,jointreadysetpoint,sizeof(jointsetpoint));
+				if(action == 1){
+					memcpy(jointsetpoint,jointreadysetpoint,sizeof(jointsetpoint));
+				}
 			} else{
 				memcpy(jointsetpoint,&path_setpoint[path_no * 4],sizeof(jointsetpoint));
 			}
@@ -692,10 +663,9 @@ void mhainw_command_statemachine(Protocol *uart){
 						HAL_Delay(1000);
 					}
 					if(end_path){
-						if(action == 2){
+						if(action != 1){
 							state = MHAINW_MOVE_SETPOINTGEN;
 							end_path =0;
-							move = 1;
 							path_no = -1;
 							action = 1;
 
