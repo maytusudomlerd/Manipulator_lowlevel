@@ -120,7 +120,8 @@ Controller velocity_jointcontroller[4];
 Kalmanfilter kalmanjoint[4];
 Trajectory quinticTrajectory[4];
 
-
+float offset_x = 0;
+float offset_y = 0;
 
 uint8_t Proximity_state[4];
 
@@ -171,7 +172,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -219,8 +220,8 @@ int main(void)
 
 
   //initial controller for case-cade control
-  mhainw_control_init(&position_jointcontroller[0],2000,0.01,0,300,600); //kp = 20 0 0
-  mhainw_control_init(&position_jointcontroller[1],2000,0.1,500,500,1000);  //kp=50 0.07 0
+  mhainw_control_init(&position_jointcontroller[0],3000,0.01,500,300,600); //kp = 20 0 0
+  mhainw_control_init(&position_jointcontroller[1],2000,0.1,1000,1000,1000);  //kp=50 0.07 0
   mhainw_control_init(&position_jointcontroller[2],1000,0.01,0,1500,2500); // 5 0 0
   mhainw_control_init(&position_jointcontroller[3],2000,0.06,0,300,600); // 40 0 0
 
@@ -285,6 +286,7 @@ int main(void)
 //	  /*test mapping position
 		if(num > 0){
 			pointinchessboardtomanipulator(num,0,jointsetpoint);
+			jointsetpoint[2] = -80;
 			mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
 			num = 0;
 		}
@@ -582,6 +584,11 @@ void mhainw_command_statemachine(Protocol *uart){
 				pointinchessboardtomanipulator(from_king,0,temp_from); //from chessboardrad
 				pointinchessboardtomanipulator(to_king,0,temp_to); //to chessboardrad
 			}
+			else if(action == 0x40 || action == 0x41){
+				pointinchessboardtomanipulator(uart->data[0],0,temp_from); //from   chessboardrad
+				pointinchessboardtomanipulator(uart->data[1],0,temp_to);
+			}
+
 			state = MHAINW_MOVE_SETPOINTGEN;
 
 		case MHAINW_MOVE_SETPOINTGEN:
@@ -593,10 +600,10 @@ void mhainw_command_statemachine(Protocol *uart){
 			memcpy(&path_setpoint[16],temp_to,sizeof(temp_to));
 			memcpy(&path_setpoint[20],temp_to,sizeof(temp_to));
 			path_setpoint[2] = 0;
-			path_setpoint[6] = -120;
+			path_setpoint[6] = -115;
 			path_setpoint[10] = 0;
 			path_setpoint[14] = 0;
-			path_setpoint[18] = -120;
+			path_setpoint[18] = -115;
 			path_setpoint[22] = 0;
 
 			if(action == 2){
@@ -607,6 +614,14 @@ void mhainw_command_statemachine(Protocol *uart){
 			else if(action == 3){
 				pointinchessboardtomanipulator(from_rook,0,temp_from); //from chessboardrad
 				pointinchessboardtomanipulator(to_rook,0,temp_to); //to chessboardrad
+			}
+			else if(action == 0x40){
+				pointinchessboardtomanipulator(uart->data[1] + 8 ,0,temp_from);  //from    chessboardrad
+				memcpy(temp_to,jointreadysetpoint,sizeof(jointreadysetpoint));
+			}
+			else if(action == 0x41){
+				pointinchessboardtomanipulator(uart->data[1] - 8,0,temp_from);
+				memcpy(temp_to,jointreadysetpoint,sizeof(jointreadysetpoint));
 			}
 
 			state = MHAINW_MOVE_SETPOINTUPDATE;
