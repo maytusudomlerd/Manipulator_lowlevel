@@ -106,6 +106,7 @@ float jointsetpoint[4] = {0}; //target point in configuration space
 float jointsubsetpoint[4] = {0};
 float jointvelocitysetpoint[4] = {0}; //target velocity in configuration space
 float controloutput[4];
+float perv_setpoint[4];
 
 float temp[4];
 int16_t goal;
@@ -171,8 +172,8 @@ int main(void)
 
   /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */	HAL_Init();
+
 
   /* USER CODE BEGIN Init */
 
@@ -220,20 +221,20 @@ int main(void)
 
 
   //initial controller for case-cade control
-  mhainw_control_init(&position_jointcontroller[0],3000,0.01,500,300,600); //kp = 20 0 0
-  mhainw_control_init(&position_jointcontroller[1],2000,0.1,1000,1000,1000);  //kp=50 0.07 0
-  mhainw_control_init(&position_jointcontroller[2],1000,0.01,0,1500,2500); // 5 0 0
-  mhainw_control_init(&position_jointcontroller[3],2000,0.06,0,300,600); // 40 0 0
+  mhainw_control_init(&position_jointcontroller[0],2000,0.07,0,600,600); //kp = 20 0 0
+  mhainw_control_init(&position_jointcontroller[1],3000,0.05,1500,1000,1000);  //kp=50 0.07 0
+  mhainw_control_init(&position_jointcontroller[2],1000,0,0,1500,2500); // 5 0 0
+  mhainw_control_init(&position_jointcontroller[3],3000,0.07,0,300,600); // 40 0 0
 
-  mhainw_kalmanfilter_init(&kalmanjoint[0],0,-1,0,1,0,1,3000,0.0001);
-  mhainw_kalmanfilter_init(&kalmanjoint[1],0,2.5,0,1,0,1,1000,0.0001);
+  mhainw_kalmanfilter_init(&kalmanjoint[0],0,0,0,1,0,1,1000,0.0001);
+  mhainw_kalmanfilter_init(&kalmanjoint[1],0,2.5,0,1,0,1,3000,0.0001);
   mhainw_kalmanfilter_init(&kalmanjoint[2],0,0,0,0,0,0.0147,kalman_Q,kalman_R);
   mhainw_kalmanfilter_init(&kalmanjoint[3],0,0,0,0,0,0.0147,kalman_Q,kalman_R);
 
-  mhainw_trajectory_init(&quinticTrajectory[0],0.001);
-  mhainw_trajectory_init(&quinticTrajectory[1],0.001);
-  mhainw_trajectory_init(&quinticTrajectory[2],0.001);
-  mhainw_trajectory_init(&quinticTrajectory[3],0.001);
+  mhainw_trajectory_init(&quinticTrajectory[0],0.0005);
+  mhainw_trajectory_init(&quinticTrajectory[1],0.0005);
+  mhainw_trajectory_init(&quinticTrajectory[2],0.0005);
+  mhainw_trajectory_init(&quinticTrajectory[3],0.0005);
 
   /* USER CODE END 2 */
 
@@ -248,7 +249,7 @@ int main(void)
 	  control_flag = 0;
 	  init_t = HAL_GetTick();
 	  while(init_kalman){
-		  if(!(HAL_GetTick() - init_t >= 1000)){
+		  if(!(HAL_GetTick() - init_t >= 500)){
 			  for(joint =0;joint<4;joint++){
 				//read encoder
 				jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
@@ -262,8 +263,10 @@ int main(void)
 		  }
 	  }
   }
+  control_flag = 1;
   mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-/* test trarj
+
+  /* test trarj
   for(int i=0;i<4;i++){
 	  jointsetpoint[i] = setpoint_test[0][i];
   }
@@ -277,6 +280,7 @@ int main(void)
   jointsetpoint[2] = 0;
   mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
   */
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -292,8 +296,8 @@ int main(void)
 		}
 //	  */
 
-	  //update robot position 2000 hz
-	  if(HAL_GetTick() - read_timestamp >= 0.5){
+	  //update robot position 4000 hz
+	  if(HAL_GetTick() - read_timestamp >= 0.25){
 		  read_timestamp = HAL_GetTick();
 		  for(int joint=0;joint<4;joint++){
 			//read encoder
@@ -310,8 +314,8 @@ int main(void)
 
 	  if(control_flag ==1 ){
 
-		  //update control loop 1000 hz
-		  if(HAL_GetTick() - timestamp >= 1){
+		  //update control loop 2000 hz
+		  if(HAL_GetTick() - timestamp >= 0.5){
 			timestamp = HAL_GetTick();
 			for(joint =0;joint<4;joint++){
 				//update trajectory
@@ -325,6 +329,8 @@ int main(void)
 					else{
 						quinticTrajectory[joint].havetraj = 0;
 						user.goal_reach[joint] = 1;
+						memcpy(perv_setpoint,jointsetpoint,sizeof(jointsetpoint));
+
 
 						/* terst traj
 						for(int i=0;i<4;i++){
@@ -514,6 +520,7 @@ void mhainw_command_statemachine(Protocol *uart){
 	static float path_setpoint[24];
 	static uint8_t action;
 	static int8_t path_no = -1;
+
 	if(set){
 		state = uart->inst;
 		set=0;
@@ -600,10 +607,10 @@ void mhainw_command_statemachine(Protocol *uart){
 			memcpy(&path_setpoint[16],temp_to,sizeof(temp_to));
 			memcpy(&path_setpoint[20],temp_to,sizeof(temp_to));
 			path_setpoint[2] = 0;
-			path_setpoint[6] = -115;
+			path_setpoint[6] = -115; //-115
 			path_setpoint[10] = 0;
 			path_setpoint[14] = 0;
-			path_setpoint[18] = -115;
+			path_setpoint[18] = -115; // -115
 			path_setpoint[22] = 0;
 
 			if(action == 2){
@@ -636,6 +643,7 @@ void mhainw_command_statemachine(Protocol *uart){
 			} else{
 				memcpy(jointsetpoint,&path_setpoint[path_no * 4],sizeof(jointsetpoint));
 			}
+			memcpy(perv_setpoint,jointsetpoint,sizeof(jointsetpoint));
 			state = MHAINW_TRAJGEN;
 			inst = MHAINW_TASKMOVE_ACK;
 			break;
@@ -683,7 +691,6 @@ void mhainw_command_statemachine(Protocol *uart){
 							end_path =0;
 							path_no = -1;
 							action = 1;
-
 						} else {
 							end_path = 0;
 							path_no = -1;
