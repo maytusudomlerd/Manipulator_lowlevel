@@ -2,13 +2,16 @@
  * mhainw_trajectory.h
  *
  *  Created on: Mar 1, 2022
- *      Author: pienapat
+ *      Author: maytus
  */
 
 #ifndef INC_MHAINW_TRAJECTORY_H_
 #define INC_MHAINW_TRAJECTORY_H_
 
 #include "math.h"
+#include "Mhainw_kalmanfilter.h"
+
+#define nothave_dq_i
 
 typedef struct{
 	float havetraj;
@@ -25,8 +28,18 @@ typedef struct{
 }Trajectory;
 
 void mhainw_trajectory_init(Trajectory *traj,float delta_t);
-void mhainw_trajectory_generatetraj(Trajectory *traj,float *q_i,float *q_f);
-void trajectory_generateTrajCoef(Trajectory *traj,float q_i,float q_f);
-void trajectory_findTk(Trajectory *traj,float q_i,float q_f);
 void mhainw_trajectory_updatetraj(Trajectory *traj);
+
+#ifdef have_dq_i
+	void mhainw_trajectory_generatetraj(Trajectory *traj,float *q_i,float *q_f,Kalmanfilter *kalman);
+	void trajectory_generateTrajCoef(Trajectory *traj,float q_i,float q_f,float dq_i);
+	void trajectory_findTk(Trajectory *traj,float q_i,float q_f,float dq_i);
+#endif
+
+#ifdef nothave_dq_i
+	void mhainw_trajectory_generatetraj(Trajectory *traj,float *q_i,float *q_f);
+	void trajectory_generateTrajCoef(Trajectory *traj,float q_i,float q_f);
+	void trajectory_findTk(Trajectory *traj,float q_i,float q_f);
+#endif
+
 #endif /* INC_MHAINW_TRAJECTORY_H_ */

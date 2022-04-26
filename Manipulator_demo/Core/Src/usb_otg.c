@@ -94,7 +94,8 @@ void HAL_PCD_MspInit(PCD_HandleTypeDef* pcdHandle)
     GPIO_InitStruct.Alternate = GPIO_AF10_OTG1_FS;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    /* USB_OTG_FS clock enable */    __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
+    /* USB_OTG_FS clock enable */
+    __HAL_RCC_USB_OTG_FS_CLK_ENABLE();
   /* USER CODE BEGIN USB_OTG_FS_MspInit 1 */
 
   /* USER CODE END USB_OTG_FS_MspInit 1 */

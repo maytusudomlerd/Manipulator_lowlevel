@@ -45,13 +45,14 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define PI 3.1415926
+
 //5000 0.001
 #define kalman_Q 500 //2500
 #define kalman_R 0.0001
 
+#define PULSEPERROUND                 8192
 #define CONVERT_CHESSBOARD_PULSETORAD 0
-#define PULSEPERROUND 8192
+//#define CONVERT_CHESSBOARD_PULSETORAD (PI * 2) / PULSEPERROUND
 
 #define JOINT1_DEGTOPULSE            PULSEPERROUND / 360
 #define JOINT2_DEGTOPULSE            PULSEPERROUND / 360
@@ -62,12 +63,10 @@
 #define JOINT2_RADTOPULSE            PULSEPERROUND / (PI * 2)
 #define JOINT4_RADTOPULSE            (PULSEPERROUND * 4) / (PI * 2)
 
-
-
-#define J1_OFFSETTOHOMECONFIGURATION 1672
-#define J2_OFFSETTOHOMECONFIGURATION -3504 //-3464
+#define J1_OFFSETTOHOMECONFIGURATION 1686 //1663
+#define J2_OFFSETTOHOMECONFIGURATION -3571 //-3464
 #define J3_OFFSETTOHOMECONFIGURATION 0
-#define J4_OFFSETTOHOMECONFIGURATION 6427 //5932
+#define J4_OFFSETTOHOMECONFIGURATION 6394 //5932
 
 
 /* USER CODE END PD */
@@ -172,8 +171,8 @@ int main(void)
 
   /* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */	HAL_Init();
-
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -224,7 +223,7 @@ int main(void)
   mhainw_control_init(&position_jointcontroller[0],2000,0.07,0,600,600); //kp = 20 0 0
   mhainw_control_init(&position_jointcontroller[1],3000,0.05,1500,1000,1000);  //kp=50 0.07 0
   mhainw_control_init(&position_jointcontroller[2],1000,0,0,1500,2500); // 5 0 0
-  mhainw_control_init(&position_jointcontroller[3],3000,0.07,0,300,600); // 40 0 0
+  mhainw_control_init(&position_jointcontroller[3],3000,0.07,0,300,600); // 3000 0.07 0
 
   mhainw_kalmanfilter_init(&kalmanjoint[0],0,0,0,1,0,1,1000,0.0001);
   mhainw_kalmanfilter_init(&kalmanjoint[1],0,2.5,0,1,0,1,3000,0.0001);
@@ -263,14 +262,15 @@ int main(void)
 		  }
 	  }
   }
-  control_flag = 1;
   mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
+//  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
 
   /* test trarj
   for(int i=0;i<4;i++){
 	  jointsetpoint[i] = setpoint_test[0][i];
   }
   mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
+  //  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
  */
 
  /*test mapping position
@@ -279,6 +279,7 @@ int main(void)
   IPK(tasksetpoint,-1,jointsetpoint);
   jointsetpoint[2] = 0;
   mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
+  //  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
   */
 
   while (1)
@@ -287,11 +288,12 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-//	  /*test mapping position
-		if(num > 0){
-			pointinchessboardtomanipulator(num,0,jointsetpoint);
-			jointsetpoint[2] = -80;
+//	  /*test mapping posi
+	  if(num > 0){
+			pointinchessboardtomanipulator(num,chessboardrad,jointsetpoint);
+			jointsetpoint[2] = -100;
 			mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
+			//  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
 			num = 0;
 		}
 //	  */
@@ -308,8 +310,8 @@ int main(void)
 			mhainw_kalmanfilter_updatekalman(&kalmanjoint[joint],jointconfig[joint]);
 			FPK(jointconfig,taskconfig);
 		  }
-		  chessboardpos += mhainw_amt10_unwrap(&chessboardenc) ;
-		  chessboardrad = chessboardpos * CONVERT_CHESSBOARD_PULSETORAD;
+		  chessboardpos += mhainw_amt10_unwrap(&chessboardenc);
+		  chessboardrad = (chessboardpos * CONVERT_CHESSBOARD_PULSETORAD) % (2 * PI);
 	  }
 
 	  if(control_flag ==1 ){
@@ -331,19 +333,21 @@ int main(void)
 						user.goal_reach[joint] = 1;
 						memcpy(perv_setpoint,jointsetpoint,sizeof(jointsetpoint));
 
-
 						/* terst traj
 						for(int i=0;i<4;i++){
 							setpoint_test_indx[i] = (setpoint_test_indx[i] + 1) % 2;
 							jointsetpoint[i] = setpoint_test[setpoint_test_indx[i]][i];
 						}
 						mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
+						//  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
 						 */
 
 						/* map test
 						num = (num + 1) % 65;
-						pointinchessboardtomanipulator(num,jointsetpoint);
+						pointinchessboardtomanipulator(num,chessboardrad,jointsetpoint);
+						jointsetpoint[2] = -100;
 						mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
+						//  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
 						*/
 
 					}
@@ -371,7 +375,7 @@ int main(void)
 			    }
 
 			    else {
-			    	mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsetpoint[joint], kalmanjoint[joint].x1);
+			    	mhainw_control_controllerupdate(&position_jointcontroller[joint], jointsetpoint[joint], jointconfig[joint]);
 					mhainw_stepper_setspeed(&motors[joint], position_jointcontroller[joint].output);
 			    }
 
@@ -383,12 +387,6 @@ int main(void)
 			}
 	  }
 
-//	  robot feedback
-//	  if(robot_feedback){
-//		  if(HAL_GetTick() - feedback_timestamp >= 500){
-//			  UARTsentFeedback(&user, MHAINW_JOINT_FEEDBACK,jointconfig,4);
-//		  }
-//	  }
   }
   /* USER CODE END 3 */
 }
@@ -520,6 +518,7 @@ void mhainw_command_statemachine(Protocol *uart){
 	static float path_setpoint[24];
 	static uint8_t action;
 	static int8_t path_no = -1;
+	float z_down = -115.0;
 
 	if(set){
 		state = uart->inst;
@@ -571,11 +570,11 @@ void mhainw_command_statemachine(Protocol *uart){
 			action = uart->data[2];
 
 			if(action == 1){
-				pointinchessboardtomanipulator(uart->data[0],0,temp_from); //from   chessboardrad
-				pointinchessboardtomanipulator(uart->data[1],0,temp_to);   //to     chessboardrad
+				pointinchessboardtomanipulator(uart->data[0],chessboardrad,temp_from);
+				pointinchessboardtomanipulator(uart->data[1],chessboardrad,temp_to);
 			}
 			else if(action == 2){
-				pointinchessboardtomanipulator(uart->data[1],0,temp_from);
+				pointinchessboardtomanipulator(uart->data[1],chessboardrad,temp_from);
 				memcpy(temp_to,jointreadysetpoint,sizeof(jointreadysetpoint));
 			}
 			else if(action == 3){
@@ -588,12 +587,12 @@ void mhainw_command_statemachine(Protocol *uart){
 					to_rook = from_king + 1;
 					to_king = from_king + 2;
 				}
-				pointinchessboardtomanipulator(from_king,0,temp_from); //from chessboardrad
-				pointinchessboardtomanipulator(to_king,0,temp_to); //to chessboardrad
+				pointinchessboardtomanipulator(from_king,chessboardrad,temp_from);
+				pointinchessboardtomanipulator(to_king,chessboardrad,temp_to);
 			}
 			else if(action == 0x40 || action == 0x41){
-				pointinchessboardtomanipulator(uart->data[0],0,temp_from); //from   chessboardrad
-				pointinchessboardtomanipulator(uart->data[1],0,temp_to);
+				pointinchessboardtomanipulator(uart->data[0],chessboardrad,temp_from);
+				pointinchessboardtomanipulator(uart->data[1],chessboardrad,temp_to);
 			}
 
 			state = MHAINW_MOVE_SETPOINTGEN;
@@ -607,23 +606,23 @@ void mhainw_command_statemachine(Protocol *uart){
 			memcpy(&path_setpoint[16],temp_to,sizeof(temp_to));
 			memcpy(&path_setpoint[20],temp_to,sizeof(temp_to));
 			path_setpoint[2] = 0;
-			path_setpoint[6] = -115; //-115
+			path_setpoint[6] = z_down;
 			path_setpoint[10] = 0;
 			path_setpoint[14] = 0;
-			path_setpoint[18] = -115; // -115
+			path_setpoint[18] = z_down;
 			path_setpoint[22] = 0;
 
 			if(action == 2){
 				path_setpoint[18] = -50;
-				pointinchessboardtomanipulator(uart->data[0],0,temp_from); //from   chessboardrad
-				pointinchessboardtomanipulator(uart->data[1],0,temp_to);   //to     chessboardrad
+				pointinchessboardtomanipulator(uart->data[0],chessboardrad,temp_from);
+				pointinchessboardtomanipulator(uart->data[1],chessboardrad,temp_to);
 			}
 			else if(action == 3){
-				pointinchessboardtomanipulator(from_rook,0,temp_from); //from chessboardrad
-				pointinchessboardtomanipulator(to_rook,0,temp_to); //to chessboardrad
+				pointinchessboardtomanipulator(from_rook,chessboardrad,temp_from);
+				pointinchessboardtomanipulator(to_rook,chessboardrad,temp_to);
 			}
 			else if(action == 0x40){
-				pointinchessboardtomanipulator(uart->data[1] + 8 ,0,temp_from);  //from    chessboardrad
+				pointinchessboardtomanipulator(uart->data[1] + 8 ,chessboardrad,temp_from);
 				memcpy(temp_to,jointreadysetpoint,sizeof(jointreadysetpoint));
 			}
 			else if(action == 0x41){
@@ -714,6 +713,7 @@ void mhainw_command_statemachine(Protocol *uart){
 		for(int i=0;i<4;i++){
 			uart->goal_reach[i] = 0;
 			mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
+			//  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
 		}
 		state = MHAINW_WAIT;
 	}

@@ -1,7 +1,7 @@
 import serial
 
 # ser = serial.Serial('/dev/tty.usbserial-142410', 256000, timeout=1)
-ser = serial.Serial('/dev/tty.usbmodem1424203', 256000, timeout=1)
+ser = serial.Serial('/dev/tty.usbmodem1414203', 256000, timeout=1)
 # tty.usbmodem1424203
 
 def checksum(data):
@@ -154,12 +154,12 @@ def task_move(pointfrom,pointto,action):
 if __name__ == "__main__":
     # tx_sethome()
     # tx_jog(axis='j3', step=10 , type='j')
-    # tx_jog(axis='x', step=10, type='c')
-    # tx_move(ref='current',type='j',position=[0,0,100,0])
+    # tx_jog(axis='x', step=-10, type='c')
+    # tx_move(ref='current',type='j',position=[-90,0,0,0])
     # tx_move(ref='home',type='j',position=[0,0,0,0])
-    # tx_move(ref='current',type='c',position=[-10,20,0,0])
+    # tx_move(ref='current',type='c',position=[-10,0,0,0])
     
-    task_move(1,7,1)
+    task_move(60,61,1)
 
     # require_manipulator_position()
     # require_chessboard_position()
