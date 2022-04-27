@@ -248,7 +248,7 @@ int main(void)
 	  control_flag = 0;
 	  init_t = HAL_GetTick();
 	  while(init_kalman){
-		  if(!(HAL_GetTick() - init_t >= 500)){
+		  if(!(HAL_GetTick() - init_t >= 1000)){
 			  for(joint =0;joint<4;joint++){
 				//read encoder
 				jointstate[joint] += mhainw_amt10_unwrap(&encoders[joint]);
@@ -263,14 +263,12 @@ int main(void)
 	  }
   }
   mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-//  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
 
   /* test trarj
   for(int i=0;i<4;i++){
 	  jointsetpoint[i] = setpoint_test[0][i];
   }
   mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-  //  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
  */
 
  /*test mapping position
@@ -279,7 +277,6 @@ int main(void)
   IPK(tasksetpoint,-1,jointsetpoint);
   jointsetpoint[2] = 0;
   mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-  //  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
   */
 
   while (1)
@@ -293,7 +290,6 @@ int main(void)
 			pointinchessboardtomanipulator(num,chessboardrad,jointsetpoint);
 			jointsetpoint[2] = -100;
 			mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-			//  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
 			num = 0;
 		}
 //	  */
@@ -311,7 +307,7 @@ int main(void)
 			FPK(jointconfig,taskconfig);
 		  }
 		  chessboardpos += mhainw_amt10_unwrap(&chessboardenc);
-		  chessboardrad = (chessboardpos * CONVERT_CHESSBOARD_PULSETORAD) % (2 * PI);
+		  chessboardrad = (chessboardpos * CONVERT_CHESSBOARD_PULSETORAD);
 	  }
 
 	  if(control_flag ==1 ){
@@ -339,7 +335,6 @@ int main(void)
 							jointsetpoint[i] = setpoint_test[setpoint_test_indx[i]][i];
 						}
 						mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-						//  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
 						 */
 
 						/* map test
@@ -347,7 +342,6 @@ int main(void)
 						pointinchessboardtomanipulator(num,chessboardrad,jointsetpoint);
 						jointsetpoint[2] = -100;
 						mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-						//  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
 						*/
 
 					}
@@ -368,10 +362,6 @@ int main(void)
 
 				controloutput[joint] = (position_jointcontroller[joint].output + jointvelocitysetpoint[joint]) - kalmanjoint[joint].x2;
 				mhainw_stepper_setspeed(&motors[joint], controloutput[joint]);
-
-				//controller with tune parameter for only position control
-//				mhainw_control_controllerupdate(&pid_position[joint], jointsetpoint[joint], kalmanjoint[joint].x1);
-
 			    }
 
 			    else {
@@ -518,7 +508,7 @@ void mhainw_command_statemachine(Protocol *uart){
 	static float path_setpoint[24];
 	static uint8_t action;
 	static int8_t path_no = -1;
-	float z_down = -115.0;
+	float z_down = -113.0;
 
 	if(set){
 		state = uart->inst;
@@ -713,7 +703,6 @@ void mhainw_command_statemachine(Protocol *uart){
 		for(int i=0;i<4;i++){
 			uart->goal_reach[i] = 0;
 			mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint);
-			//  mhainw_trajectory_generatetraj(quinticTrajectory,jointconfig,jointsetpoint,kalmanjoint);
 		}
 		state = MHAINW_WAIT;
 	}
