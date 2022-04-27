@@ -51,17 +51,17 @@
 #define kalman_R 0.0001
 
 #define PULSEPERROUND                 8192
-#define CONVERT_CHESSBOARD_PULSETORAD 0
-//#define CONVERT_CHESSBOARD_PULSETORAD (PI * 2) / PULSEPERROUND
+//#define CONVERT_CHESSBOARD_PULSETORAD 0
+#define CONVERT_CHESSBOARD_PULSETORAD (PI * 2.0) / PULSEPERROUND
 
 #define JOINT1_DEGTOPULSE            PULSEPERROUND / 360
 #define JOINT2_DEGTOPULSE            PULSEPERROUND / 360
 #define JOINT3_MMTOPULSE             (PULSEPERROUND * 2.5625) / 8
-#define JOINT4_DEGTOPULSE            (PULSEPERROUND * 4) / 360
+#define JOINT4_DEGTOPULSE            (PULSEPERROUND * 4.0) / 360
 
-#define JOINT1_RADTOPULSE            PULSEPERROUND / (PI * 2)
-#define JOINT2_RADTOPULSE            PULSEPERROUND / (PI * 2)
-#define JOINT4_RADTOPULSE            (PULSEPERROUND * 4) / (PI * 2)
+#define JOINT1_RADTOPULSE            PULSEPERROUND / (PI * 2.0)
+#define JOINT2_RADTOPULSE            PULSEPERROUND / (PI * 2.0)
+#define JOINT4_RADTOPULSE            (PULSEPERROUND * 4.0) / (PI * 2.0)
 
 #define J1_OFFSETTOHOMECONFIGURATION 1686 //1663
 #define J2_OFFSETTOHOMECONFIGURATION -3571 //-3464
@@ -115,8 +115,6 @@ uint32_t timestamp = 0;
 uint32_t read_timestamp = 0;
 uint32_t feedback_timestamp = 0;
 Controller position_jointcontroller[4];
-Controller pid_position[4];
-Controller velocity_jointcontroller[4];
 Kalmanfilter kalmanjoint[4];
 Trajectory quinticTrajectory[4];
 
@@ -258,7 +256,7 @@ int main(void)
 			  }
 		  } else{
 			  init_kalman = 0;
-			  control_flag = 1;
+//			  control_flag = 1;
 		  }
 	  }
   }
@@ -307,7 +305,7 @@ int main(void)
 			FPK(jointconfig,taskconfig);
 		  }
 		  chessboardpos += mhainw_amt10_unwrap(&chessboardenc);
-		  chessboardrad = (chessboardpos * CONVERT_CHESSBOARD_PULSETORAD);
+		  chessboardrad = fmod((chessboardpos * CONVERT_CHESSBOARD_PULSETORAD),(2.0 * PI));
 	  }
 
 	  if(control_flag ==1 ){
