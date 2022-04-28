@@ -71,7 +71,7 @@ typedef struct{
 	uint8_t Rxbuffer[512];
 	uint8_t Txbuffer[512];
 	int8_t data[100];
-	uint8_t Txhead,Rxtail,Txtail;
+	uint8_t Txhead,Rxtail,Txtail,Rxhead;
 	uint8_t len;
 	uint8_t inst;
 	uint8_t checksum;

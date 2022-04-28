@@ -8,6 +8,8 @@
 #include "mhainw_protocol.h"
 #include "usart.h"
 
+extern uint8_t numberofdata;
+
 void mhainw_protocol_init(Protocol *uart,UART_HandleTypeDef *handle){
 	/*
 	 *
@@ -18,6 +20,7 @@ void mhainw_protocol_init(Protocol *uart,UART_HandleTypeDef *handle){
 
 	uart->havedata = 0;
 	uart->Rxtail = 0;
+	uart->Rxhead = 0;
 
 	uart->goal_reach[0] = 0;
 	uart->goal_reach[1] = 0;
@@ -36,71 +39,75 @@ void mhainw_protocol_state(Protocol *uart){
 
 	static Protocolstate state;
 	static uint16_t collectdata = 0;
-
+	uint8_t start = uart->Rxhead;
+	state = idle;
 	if(uart->havedata == 1){
-		uint8_t datain = uart->Rxbuffer[uart->Rxtail];
-		switch(state){
-			//check header
-			case idle:
-				if(datain == 0xFF){
-					state = header;
-				}
-				break;
-			// input length
-			case header:
-				uart->len = datain;
-				state = len;
-				break;
-			// input instruction
-			case len:
-				uart->inst = datain;
-				state = inst;
-				break;
-			// check length of package
-			case inst:
-				if(uart->len > 2){
-					uart->data[collectdata] = datain; //collect first parameter
-					collectdata++;
-					state = collect;
+		while(start != (uart->Rxtail + 1)){
+			uint8_t datain = uart->Rxbuffer[start];
+			switch(state){
+				//check header
+				case idle:
+					if(datain == 0xFF){
+						state = header;
+					}
 					break;
-				} else{
-					uart->checksum = datain;
-					state = checksum;
-				}
-
-			// collect data
-			case collect:
-				if(collectdata < uart->len-2){
-					uart->data[collectdata] = datain;
-					collectdata++;
+				// input length
+				case header:
+					uart->len = datain;
+					state = len;
 					break;
-				} else {
-					uart->checksum = datain;
-					state = checksum;
-				}
-			// check checksum of package
-			case checksum:
-				uart->cal_checksum = uart->inst + uart->len;
-				for(int i = 0;i < collectdata ; i++){
-					uart->cal_checksum += uart->data[i];
-				}
+				// input instruction
+				case len:
+					uart->inst = datain;
+					state = inst;
+					break;
+				// check length of package
+				case inst:
+					if(uart->len > 2){
+						uart->data[collectdata] = datain; //collect first parameter
+						collectdata++;
+						state = collect;
+						break;
+					} else{
+						uart->checksum = datain;
+						state = checksum;
+					}
 
-				uart->cal_checksum = ~uart->cal_checksum & 0xFF;
+				// collect data
+				case collect:
+					if(collectdata < uart->len-2){
+						uart->data[collectdata] = datain;
+						collectdata++;
+						break;
+					} else {
+						uart->checksum = datain;
+						state = checksum;
+					}
+				// check checksum of package
+				case checksum:
+					uart->cal_checksum = uart->inst + uart->len;
+					for(int i = 0;i < collectdata ; i++){
+						uart->cal_checksum += uart->data[i];
+					}
 
-				// checksum successful
-				if(uart->cal_checksum == uart->checksum){
-					uart->package_verify = 1;
-				}
-				else{
-					UARTsentERR(uart,MHAINW_CHECKSUM_ERR);
-				}
-				state = idle;
-				collectdata = 0;
-				break;
+					uart->cal_checksum = ~uart->cal_checksum & 0xFF;
 
-			default:
-				UARTsentERR(uart, MHAINW_HEADER_ERR);
+					// checksum successful
+					if(uart->cal_checksum == uart->checksum){
+						uart->package_verify = 1;
+					}
+					else{
+						UARTsentERR(uart,MHAINW_CHECKSUM_ERR);
+					}
+					state = idle;
+					collectdata = 0;
+					break;
 
+				default:
+					UARTsentERR(uart, MHAINW_HEADER_ERR);
+
+			}
+			start++;
 		}
 		uart->havedata = 0;
 	}
@@ -113,10 +120,30 @@ void mhainw_protocol_updateRxtail(Protocol *uart){
 	 * function is use to update the last index in Rxbuffer and its use to first index to fill data in Rxbuffer
 	 *
 	 * */
+	static uint8_t state_rx = 0;
+	uint8_t len;
 	uart->havedata = 1;
-	mhainw_protocol_state(uart);
-	uart->Rxtail = (uart->Rxtail + 1) % sizeof(uart->Rxbuffer);
-	HAL_UART_Receive_IT(uart->handleuart, &uart->Rxbuffer[uart->Rxtail], 1);
+	switch(state_rx){
+		case 0:
+			uart->Rxhead = uart->Rxtail;
+			uart->Rxtail = (uart->Rxtail + 1) % sizeof(uart->Rxbuffer);
+			HAL_UART_Receive_IT(uart->handleuart, &uart->Rxbuffer[uart->Rxtail], 1);
+			state_rx = 1;
+			break;
+		case 1:
+			len = uart->Rxbuffer[uart->Rxtail];
+			HAL_UART_Receive_IT(uart->handleuart, &uart->Rxbuffer[uart->Rxtail + 1], len);
+			uart->Rxtail = (uart->Rxtail + len) % sizeof(uart->Rxbuffer);
+			state_rx = 2;
+			break;
+		case 2:
+			mhainw_protocol_state(uart);
+			uart->Rxhead = uart->Rxtail;
+			uart->Rxtail = (uart->Rxtail + 1) % sizeof(uart->Rxbuffer);
+			HAL_UART_Receive_IT(uart->handleuart, &uart->Rxbuffer[uart->Rxtail], 1);
+			state_rx = 0;
+			break;
+	}
 
 }
 
@@ -129,24 +156,14 @@ void mhainw_protocol_sentdata(Protocol *uart,uint8_t *pData, uint16_t len){
 
 	uint16_t Txlen = sizeof(uart->Txbuffer);
 
-	//check length of data is more than buffer
-//	uint16_t lendata = (len <= Txlen) ? len : Txlen;
-	if(len > Txlen){
-		uart->Txhead = 0;
-		uart->Txtail = 0;
-	}
+	uart->Txhead = 0;
+	uart->Txtail = 0;
 
 //	//copy data to Txbuffer
-//	uint16_t cancpy = (lendata <= Txlen - uart->Txhead) ? lendata : Txlen - uart->Txhead;
-
-	memcpy(&(uart->Txbuffer[uart->Txhead]), pData, len);
+	memcpy(&(uart->Txbuffer[uart->Txhead]), pData, sizeof(pData));
 
 	//move head to new position
 	uart->Txhead = (uart->Txhead + len) % Txlen;
-
-//	if(lendata != cancpy){
-//		memcpy(uart->Txbuffer, pData+cancpy, lendata - cancpy);
-//	}
 	UARTsendit(uart);
 }
 

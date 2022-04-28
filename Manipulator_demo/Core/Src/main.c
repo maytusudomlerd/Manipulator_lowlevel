@@ -52,7 +52,7 @@
 
 #define PULSEPERROUND                 8192
 //#define CONVERT_CHESSBOARD_PULSETORAD 0
-#define CONVERT_CHESSBOARD_PULSETORAD (PI * 2.0) / PULSEPERROUND
+#define CONVERT_CHESSBOARD_PULSETORAD (PI * 2.0) / 2000.0
 
 #define JOINT1_DEGTOPULSE            PULSEPERROUND / 360
 #define JOINT2_DEGTOPULSE            PULSEPERROUND / 360
@@ -100,7 +100,7 @@ float setpoint[4];   //target point in encoder unit(pulse)
 float taskconfig[4] = {0};  //now position in task space
 float jointconfig[4] = {0}; //now position in configuration space
 float tasksetpoint[4]; //target point in task space
-float jointreadysetpoint[4] = {1.04,-0.78,0,0}; //target point in configuration space
+float jointreadysetpoint[4] = {1.04,-1.04,0,0}; //target point in configuration space
 float jointsetpoint[4] = {0}; //target point in configuration space
 float jointsubsetpoint[4] = {0};
 float jointvelocitysetpoint[4] = {0}; //target velocity in configuration space
@@ -109,6 +109,8 @@ float perv_setpoint[4];
 
 float temp[4];
 int16_t goal;
+
+uint8_t numberofdata = 0;
 
 
 uint32_t timestamp = 0;
@@ -144,6 +146,7 @@ float x,y;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 void mhainw_robot_sethome();
+void mhainw_robot_j3sethome();
 void mhainw_command_statemachine(Protocol *uart);
 void jogcatesian(Protocol *uart,float *jointsetpoint);
 void jogjoint(Protocol *uart,float *jointsetpoint);
@@ -170,7 +173,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -220,11 +223,11 @@ int main(void)
   //initial controller for case-cade control
   mhainw_control_init(&position_jointcontroller[0],2000,0.07,0,600,600); //kp = 20 0 0
   mhainw_control_init(&position_jointcontroller[1],3000,0.05,1500,1000,1000);  //kp=50 0.07 0
-  mhainw_control_init(&position_jointcontroller[2],1000,0,0,1500,2500); // 5 0 0
+  mhainw_control_init(&position_jointcontroller[2],2000,0.005,0,1500,2500); // 5 0 0
   mhainw_control_init(&position_jointcontroller[3],3000,0.07,0,300,600); // 3000 0.07 0
 
   mhainw_kalmanfilter_init(&kalmanjoint[0],0,0,0,1,0,1,1000,0.0001);
-  mhainw_kalmanfilter_init(&kalmanjoint[1],0,2.5,0,1,0,1,3000,0.0001);
+  mhainw_kalmanfilter_init(&kalmanjoint[1],0,-2.5,0,1,0,1,3000,0.0001);
   mhainw_kalmanfilter_init(&kalmanjoint[2],0,0,0,0,0,0.0147,kalman_Q,kalman_R);
   mhainw_kalmanfilter_init(&kalmanjoint[3],0,0,0,0,0,0.0147,kalman_Q,kalman_R);
 
@@ -256,7 +259,7 @@ int main(void)
 			  }
 		  } else{
 			  init_kalman = 0;
-//			  control_flag = 1;
+			  control_flag = 1;
 		  }
 	  }
   }
@@ -305,7 +308,7 @@ int main(void)
 			FPK(jointconfig,taskconfig);
 		  }
 		  chessboardpos += mhainw_amt10_unwrap(&chessboardenc);
-		  chessboardrad = fmod((chessboardpos * CONVERT_CHESSBOARD_PULSETORAD),(2.0 * PI));
+		  chessboardrad = chessboardpos * CONVERT_CHESSBOARD_PULSETORAD;
 	  }
 
 	  if(control_flag ==1 ){
@@ -441,7 +444,7 @@ void mhainw_robot_sethome(){
 	uint8_t sethome[3] = {0};
 	float jointoffset[4] = {J1_OFFSETTOHOMECONFIGURATION,J2_OFFSETTOHOMECONFIGURATION,J3_OFFSETTOHOMECONFIGURATION,J4_OFFSETTOHOMECONFIGURATION};
 	//offset
-	mhainw_stepper_setspeed(&motors[0], -130);
+	mhainw_stepper_setspeed(&motors[0], -125);
 	mhainw_stepper_setspeed(&motors[1], 300);
 	mhainw_stepper_setspeed(&motors[2], -1000);
 	mhainw_stepper_setspeed(&motors[3], -1000);
@@ -470,7 +473,7 @@ void mhainw_robot_sethome(){
 			mhainw_stepper_setspeed(&motors[0], 0);
 			sethome[0] = 1;
 		} else{
-			mhainw_stepper_setspeed(&motors[0], 130);
+			mhainw_stepper_setspeed(&motors[0], 125);
 		}
 		if(Proximity_state[1] == 1){
 			mhainw_stepper_setspeed(&motors[1], 0);
@@ -496,6 +499,20 @@ void mhainw_robot_sethome(){
 
 }
 
+void mhainw_robot_j3sethome(){
+	Proximity_state[2] = 0;
+	mhainw_stepper_setspeed(&motors[2], -1000);
+	HAL_Delay(500);
+	mhainw_stepper_setspeed(&motors[2], 0);
+	HAL_Delay(500);
+	while(Proximity_state[2] != 1){
+			mhainw_stepper_setspeed(&motors[2], 500);
+	}
+	mhainw_stepper_setspeed(&motors[2], 0);
+	HAL_Delay(1000);
+	htim3.Instance->CNT = 0;
+}
+
 void mhainw_command_statemachine(Protocol *uart){
 	static uint8_t set = 1;
 	static uint8_t inst;
@@ -506,7 +523,7 @@ void mhainw_command_statemachine(Protocol *uart){
 	static float path_setpoint[24];
 	static uint8_t action;
 	static int8_t path_no = -1;
-	float z_down = -113.0;
+	float z_down = -115.0;
 
 	if(set){
 		state = uart->inst;
@@ -597,11 +614,11 @@ void mhainw_command_statemachine(Protocol *uart){
 			path_setpoint[6] = z_down;
 			path_setpoint[10] = 0;
 			path_setpoint[14] = 0;
-			path_setpoint[18] = z_down;
+			path_setpoint[18] = z_down + 10;
 			path_setpoint[22] = 0;
 
 			if(action == 2){
-				path_setpoint[18] = -50;
+				path_setpoint[18] = -10;
 				pointinchessboardtomanipulator(uart->data[0],chessboardrad,temp_from);
 				pointinchessboardtomanipulator(uart->data[1],chessboardrad,temp_to);
 			}
@@ -667,10 +684,10 @@ void mhainw_command_statemachine(Protocol *uart){
 					uart->package_verify = 1;
 					if(path_no == 1){ //grip
 						UARTsentGripper(&user,MHAINW_GRIPPER_GRIP);
-						HAL_Delay(1000);
+						HAL_Delay(1300);
 					} else if(path_no == 4){ //ungrip
 						UARTsentGripper(&user,MHAINW_GRIPPER_UNGRIP);
-						HAL_Delay(1000);
+						HAL_Delay(1300);
 					}
 					if(end_path){
 						if(action != 1){
@@ -679,6 +696,7 @@ void mhainw_command_statemachine(Protocol *uart){
 							path_no = -1;
 							action = 1;
 						} else {
+							mhainw_robot_j3sethome();
 							end_path = 0;
 							path_no = -1;
 							set=1;
